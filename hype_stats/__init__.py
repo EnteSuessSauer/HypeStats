@@ -1,0 +1,1 @@
+"""HypeStats - Hypixel Bedwars Stats Overlay"""\n\n__version__ = "1.0.0"
