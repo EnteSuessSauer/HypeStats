@@ -1,10 +1,9 @@
 @echo off
-echo Starting HypeStats...
-
-REM Check if test mode flag is passed
-set TEST_MODE=false
-if "%1"=="--test" set TEST_MODE=true
-if "%1"=="-t" set TEST_MODE=true
+echo Starting HypeStats in TEST MODE...
+echo.
+echo This mode simulates API calls and log file reading for testing purposes.
+echo All errors and events are logged to the ./logs directory.
+echo.
 
 REM Determine if this is the first run
 if not exist "target\hypestats-1.0-SNAPSHOT.jar" (
@@ -18,17 +17,13 @@ if not exist "target\hypestats-1.0-SNAPSHOT.jar" (
     )
 )
 
-REM Run the application with or without test mode
-if "%TEST_MODE%"=="true" (
-    echo Running in TEST MODE - API and log file reading will be simulated
-    java -jar target\hypestats-1.0-SNAPSHOT.jar --test
-) else (
-    java -jar target\hypestats-1.0-SNAPSHOT.jar
-)
+REM Run the application in test mode
+java -jar target\hypestats-1.0-SNAPSHOT.jar --test
 
 REM If there was an error, pause to show the message
 if errorlevel 1 (
     echo.
     echo Application terminated with an error.
+    echo Check the logs directory for details.
     pause
 ) 

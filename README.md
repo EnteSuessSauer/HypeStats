@@ -29,6 +29,27 @@ chmod +x run.sh
 ./run.sh
 ```
 
+## Test Mode
+
+For testing purposes without requiring access to the Hypixel API or actual Minecraft log files:
+
+### Windows
+Double-click the `HypeStats-Test.bat` file to launch in test mode, or run:
+```
+HypeStats.bat --test
+```
+
+### Unix/Linux/macOS
+```bash
+./run.sh --test
+```
+
+In test mode:
+- The application will show [TEST MODE] in the window title
+- The API service will generate random mock player data
+- The log file reader will simulate player joins and game events
+- All errors and events are logged to the `./logs` directory for debugging
+
 ## Manual Installation
 
 1. Clone this repository
@@ -68,6 +89,7 @@ Use the search box on the Player Lookup tab to look up any player's Bedwars stat
   - `css/` - CSS styling
   - `fxml/` - FXML layout files
   - `images/` - Application images
+- `logs/` - Development and error logs (created during test mode)
 
 ## Technologies Used
 

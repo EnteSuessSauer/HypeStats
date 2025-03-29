@@ -3,19 +3,23 @@ package com.hypestats.util;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
+import com.hypestats.HypeStatsApp;
 import com.hypestats.model.PlayerStats;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Service for interacting with the Hypixel API
  */
+@Slf4j
 public class HypixelApiService {
     private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
     private static final String HYPIXEL_API_URL = "https://api.hypixel.net/player";
@@ -24,6 +28,7 @@ public class HypixelApiService {
     private final OkHttpClient client;
     private final Gson gson;
     private final List<Long> requestTimestamps;
+    private final Random random = new Random();
     
     public HypixelApiService() {
         this.client = new OkHttpClient.Builder()
@@ -43,46 +48,128 @@ public class HypixelApiService {
      * @throws ApiException if there's an API-level error (rate limit, invalid key, etc.)
      */
     public PlayerStats getPlayerStats(String username, String apiKey) throws IOException, ApiException {
-        // Implement rate limiting
-        enforceRateLimit();
-        
-        // First, get the UUID from the username via Mojang API
-        String uuid = getPlayerUuid(username);
-        if (uuid == null) {
-            throw new ApiException("Player not found");
-        }
-        
-        // Then, get the player data from Hypixel API
-        Request request = new Request.Builder()
-                .url(HYPIXEL_API_URL + "?uuid=" + uuid)
-                .header("API-Key", apiKey)
-                .build();
-        
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                if (response.code() == 403) {
-                    throw new ApiException("Invalid API key");
-                } else if (response.code() == 429) {
-                    throw new ApiException("Rate limit exceeded. Please try again later.");
-                } else {
-                    throw new ApiException("API error: " + response.code());
+        // Special handling for test mode
+        if (HypeStatsApp.isTestMode()) {
+            try {
+                DevLogger.log("API: getPlayerStats called for username: " + username);
+                if (apiKey == null || apiKey.isEmpty()) {
+                    DevLogger.log("API: No API key provided");
+                    throw new ApiException("No API key provided");
                 }
+            } catch (Exception e) {
+                DevLogger.log("API: Error in test logging", e);
             }
             
-            String responseBody = response.body().string();
-            JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
-            
-            if (!jsonResponse.get("success").getAsBoolean()) {
-                String cause = jsonResponse.has("cause") ? jsonResponse.get("cause").getAsString() : "Unknown error";
-                throw new ApiException("API error: " + cause);
+            // In test mode, randomly decide whether to succeed or fail
+            if (random.nextInt(10) < 3) { // 30% chance of failure for testing
+                String errorMsg = "Simulated API failure in test mode";
+                DevLogger.log("API: " + errorMsg);
+                throw new ApiException(errorMsg);
             }
             
-            if (!jsonResponse.has("player") || jsonResponse.get("player").isJsonNull()) {
-                throw new ApiException("Player has never played on Hypixel");
+            // In test mode with success case, generate mock data
+            if (username.equals("TESTFAIL")) {
+                DevLogger.log("API: Forced failure for test user");
+                throw new ApiException("Test failure triggered by username");
             }
             
-            return parsePlayerStats(jsonResponse.getAsJsonObject("player"), username, uuid);
+            DevLogger.log("API: Returning mock data for " + username);
+            return generateMockPlayerStats(username);
         }
+        
+        // Normal operation
+        try {
+            // Implement rate limiting
+            enforceRateLimit();
+            
+            // First, get the UUID from the username via Mojang API
+            String uuid = getPlayerUuid(username);
+            if (uuid == null) {
+                throw new ApiException("Player not found");
+            }
+            
+            // Then, get the player data from Hypixel API
+            Request request = new Request.Builder()
+                    .url(HYPIXEL_API_URL + "?uuid=" + uuid)
+                    .header("API-Key", apiKey)
+                    .build();
+            
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    if (response.code() == 403) {
+                        throw new ApiException("Invalid API key");
+                    } else if (response.code() == 429) {
+                        throw new ApiException("Rate limit exceeded. Please try again later.");
+                    } else {
+                        throw new ApiException("API error: " + response.code());
+                    }
+                }
+                
+                String responseBody = response.body().string();
+                JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
+                
+                if (!jsonResponse.get("success").getAsBoolean()) {
+                    String cause = jsonResponse.has("cause") ? jsonResponse.get("cause").getAsString() : "Unknown error";
+                    throw new ApiException("API error: " + cause);
+                }
+                
+                if (!jsonResponse.has("player") || jsonResponse.get("player").isJsonNull()) {
+                    throw new ApiException("Player has never played on Hypixel");
+                }
+                
+                return parsePlayerStats(jsonResponse.getAsJsonObject("player"), username, uuid);
+            }
+        } catch (IOException | ApiException e) {
+            log.error("API Request failed: {}", e.getMessage());
+            if (HypeStatsApp.isTestMode()) {
+                DevLogger.log("API: Request failed: " + e.getMessage(), e);
+            }
+            throw e;
+        }
+    }
+    
+    /**
+     * Generate mock player stats for testing
+     * @param username Username to generate stats for
+     * @return Mock PlayerStats object
+     */
+    private PlayerStats generateMockPlayerStats(String username) {
+        PlayerStats stats = new PlayerStats();
+        stats.setUuid("test-" + username.toLowerCase());
+        stats.setUsername(username);
+        
+        // Generate believable test data
+        stats.setLevel(random.nextInt(1000) + 1);
+        stats.setWins(random.nextInt(5000) + 1);
+        stats.setLosses(random.nextInt(2000) + 1);
+        stats.setWlRatio((double) stats.getWins() / Math.max(1, stats.getLosses()));
+        
+        stats.setKills(random.nextInt(15000) + 1);
+        stats.setDeaths(random.nextInt(10000) + 1);
+        stats.setKdRatio((double) stats.getKills() / Math.max(1, stats.getDeaths()));
+        
+        stats.setFinalKills(random.nextInt(10000) + 1);
+        stats.setFinalDeaths(random.nextInt(5000) + 1);
+        stats.setFinalKdRatio((double) stats.getFinalKills() / Math.max(1, stats.getFinalDeaths()));
+        
+        stats.setBedsBroken(random.nextInt(5000) + 1);
+        stats.setBedsLost(random.nextInt(3000) + 1);
+        stats.setGamesPlayed(stats.getWins() + stats.getLosses());
+        
+        // Randomly assign rank
+        String[] possibleRanks = {"DEFAULT", "VIP", "VIP+", "MVP", "MVP+", "MVP++"};
+        String[] rankColors = {"GRAY", "GREEN", "GREEN", "AQUA", "AQUA", "GOLD"};
+        int rankIndex = random.nextInt(possibleRanks.length);
+        
+        stats.setRank(possibleRanks[rankIndex]);
+        stats.setRankColor(rankColors[rankIndex]);
+        
+        // 70% chance to have a visible winstreak
+        if (random.nextInt(10) < 7) {
+            stats.setWinstreak(random.nextInt(50) + 1);
+        }
+        
+        return stats;
     }
     
     /**
