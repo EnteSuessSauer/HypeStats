@@ -1,73 +1,91 @@
-# HypeStats
+# HypeStats - Hypixel Bedwars Stats Companion
 
-A Python-based overlay that displays Hypixel Bedwars player statistics in real-time. HypeStats monitors your Minecraft logs to detect when you join a new lobby and automatically fetches player statistics from the Hypixel API.
+HypeStats is a standalone Java application for Minecraft Bedwars players, allowing you to check stats for yourself and players in your current lobby.
 
 ## Features
 
-- Real-time overlay that displays Bedwars stats of players in your current lobby
-- Transparent, draggable window that can be toggled on/off with a hotkey
-- Color-coded stats for quick assessment of player skill levels
-- Configurable hotkeys and transparency settings
-- Automatically detects when you join a new lobby
+- **Player Lookup**: Search for any Minecraft player and view their detailed Bedwars statistics
+- **Lobby Tracking**: Automatically detects players in your current Bedwars lobby by monitoring your Minecraft log file
+- **Live Stats**: View win/loss ratios, K/D ratios, beds broken, and other important stats
+- **Desktop Application**: JavaFX-based UI that works alongside your Minecraft game
 
 ## Requirements
 
-- Python 3.7+
-- Minecraft with Hypixel access
-- Hypixel API key (obtain from https://api.hypixel.net/)
+- Java 11 or higher
+- Minecraft with Hypixel Bedwars
+- Hypixel API key
 
-## Installation
+## Quick Start
 
-1. Clone this repository:
-```
-git clone https://github.com/yourusername/HypeStats.git
-cd HypeStats
+### Windows
+Simply double-click the `HypeStats.bat` file to run the application. On first run, it will automatically compile the application.
+
+### Unix/Linux/macOS
+```bash
+# Make the script executable (first time only)
+chmod +x run.sh
+
+# Run the application
+./run.sh
 ```
 
-2. Install the required dependencies:
-```
-pip install -r requirements.txt
-```
+## Manual Installation
 
-3. Create a `.env` file in the project root directory and add your Hypixel API key:
-```
-HYPIXEL_API_KEY=your_api_key_here
-```
+1. Clone this repository
+2. Build with Maven:
+   ```
+   mvn clean package
+   ```
+3. Run the JAR file:
+   ```
+   java -jar target/hypestats-1.0-SNAPSHOT.jar
+   ```
 
 ## Usage
 
-1. Start the overlay:
-```
-python -m hype_stats.main
-```
+### Setting Your API Key
 
-2. The program will attempt to automatically locate your Minecraft log file. If it cannot, you will be prompted to enter the path manually.
+1. Get a Hypixel API key by joining the Hypixel Minecraft server (mc.hypixel.net) and typing `/api new` in chat
+2. Enter this API key when prompted in the app
 
-3. Use the following default hotkeys:
-   - **F6**: Toggle overlay visibility
-   - **F7**: Open settings panel
-   - **ESC**: Close settings or exit application
+### Player Lookup
 
-## Configuration
+Use the search box on the Player Lookup tab to look up any player's Bedwars statistics.
 
-The settings panel allows you to:
-- Change hotkeys
-- Adjust overlay transparency
-- Customize display options
+### Lobby Tracking
 
-Settings are automatically saved to `hypixel_overlay_settings.pkl`.
+1. Go to the Lobby Tracker tab
+2. Confirm the path to your Minecraft log file (default paths are automatically detected)
+3. Click "Start Monitoring" to begin detecting players in your lobby
 
-## Notes
+## Project Structure
 
-- This overlay is NOT affiliated with or endorsed by Hypixel
-- HypeStats complies with Hypixel's API Terms of Service by only updating player stats when you join a new lobby (not continuously)
-- Use responsibly and respect Hypixel's API rate limits
+- `src/main/java/com/hypestats/` - Java source files
+  - `controller/` - JavaFX controllers for UI interaction
+  - `model/` - Data models
+  - `util/` - Utility classes for API calls, settings management, etc.
+- `src/main/resources/` - Application resources
+  - `css/` - CSS styling
+  - `fxml/` - FXML layout files
+  - `images/` - Application images
+
+## Technologies Used
+
+- JavaFX for the user interface
+- Maven for dependency management and building
+- OkHttp for API calls
+- Gson for JSON parsing
+- SLF4J with Logback for logging
+- Hypixel & Mojang APIs
+
+## API Rate Limiting
+
+This application respects the Hypixel API rate limits of 120 requests per minute. The app implements client-side rate limiting to ensure you stay within these limits.
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT
 
-## Acknowledgements
+## Disclaimer
 
-- Hypixel API for providing the data
-- Pygame library for the overlay functionality
+This project is not affiliated with or endorsed by Hypixel or Mojang. Use at your own risk and in accordance with the Hypixel Terms of Service. 

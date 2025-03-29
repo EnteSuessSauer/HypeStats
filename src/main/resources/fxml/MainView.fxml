@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.hypestats.controller.MainController"
+            stylesheets="/css/main.css"
+            prefHeight="700.0" prefWidth="1000.0">
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="card">
+            <padding>
+                <Insets top="10" right="15" bottom="10" left="15"/>
+            </padding>
+            <Label text="HypeStats" styleClass="header-label"/>
+            <Label text="Bedwars Companion" styleClass="sub-header-label"/>
+            <Pane HBox.hgrow="ALWAYS" />
+            <Button fx:id="settingsButton" text="Settings" onAction="#showSettings"/>
+        </HBox>
+    </top>
+    
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <Tab text="Player Lookup">
+                <fx:include source="PlayerLookup.fxml"/>
+            </Tab>
+            <Tab text="Lobby Tracker">
+                <fx:include source="LobbyTracker.fxml"/>
+            </Tab>
+        </TabPane>
+    </center>
+    
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <padding>
+                <Insets top="5" right="10" bottom="5" left="10"/>
+            </padding>
+            <Label fx:id="statusLabel" text="Ready" />
+            <Pane HBox.hgrow="ALWAYS" />
+            <Hyperlink text="Hypixel API" onAction="#openHypixelApi"/>
+        </HBox>
+    </bottom>
+</BorderPane> 

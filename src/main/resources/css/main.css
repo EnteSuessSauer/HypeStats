@@ -1,0 +1,239 @@
+/* Main application styles */
+.root {
+    -fx-background-color: #262728;
+    -fx-text-fill: white;
+    -fx-font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Text colors based on Hypixel ranks */
+.text-AQUA {
+    -fx-text-fill: #00AAFF;
+}
+
+.text-GREEN {
+    -fx-text-fill: #55FF55;
+}
+
+.text-RED {
+    -fx-text-fill: #FF5555;
+}
+
+.text-YELLOW {
+    -fx-text-fill: #FFAA00;
+}
+
+.text-GRAY {
+    -fx-text-fill: #AAAAAA;
+}
+
+/* Label styles */
+.label {
+    -fx-text-fill: white;
+}
+
+.header-label {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00AAFF;
+}
+
+.sub-header-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFAA00;
+}
+
+.section-header {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+/* Button styles */
+.button {
+    -fx-background-color: #374151;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-background-radius: 4px;
+}
+
+.button:hover {
+    -fx-background-color: #4B5563;
+}
+
+.button:pressed {
+    -fx-background-color: #6B7280;
+}
+
+.primary-button {
+    -fx-background-color: #00AAFF;
+    -fx-text-fill: white;
+}
+
+.primary-button:hover {
+    -fx-background-color: #0088CC;
+}
+
+.primary-button:pressed {
+    -fx-background-color: #0077B3;
+}
+
+.danger-button {
+    -fx-background-color: #FF5555;
+    -fx-text-fill: white;
+}
+
+.danger-button:hover {
+    -fx-background-color: #FF3333;
+}
+
+.danger-button:pressed {
+    -fx-background-color: #E60000;
+}
+
+/* Text field styles */
+.text-field {
+    -fx-background-color: #374151;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: #9CA3AF;
+    -fx-background-radius: 4px;
+}
+
+.text-field:focused {
+    -fx-background-color: #4B5563;
+    -fx-border-color: #00AAFF;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+}
+
+/* Table styles */
+.table-view {
+    -fx-background-color: #374151;
+    -fx-table-cell-border-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #2D3748;
+    -fx-background-radius: 4px 4px 0 0;
+}
+
+.table-view .column-header, .table-view .filler {
+    -fx-background-color: transparent;
+    -fx-size: 35px;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: #4B5563;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-row-cell {
+    -fx-background-color: #374151;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #323A44;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #00AAFF;
+    -fx-text-fill: white;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: white;
+    -fx-alignment: center-left;
+}
+
+/* Split pane styles */
+.split-pane {
+    -fx-background-color: transparent;
+}
+
+.split-pane .split-pane-divider {
+    -fx-background-color: #4B5563;
+    -fx-padding: 0 1px 0 1px;
+}
+
+/* Status indicator styles */
+.status-running {
+    -fx-text-fill: #55FF55;
+}
+
+.status-stopped {
+    -fx-text-fill: #FF5555;
+}
+
+.status-warning {
+    -fx-text-fill: #FFAA00;
+}
+
+/* Card styles */
+.card {
+    -fx-background-color: #323A44;
+    -fx-background-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);
+    -fx-padding: 10px;
+}
+
+/* Player stats styles */
+.stats-grid {
+    -fx-hgap: 10px;
+    -fx-vgap: 10px;
+}
+
+.stat-card {
+    -fx-background-color: #2D3748;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px;
+    -fx-alignment: center;
+}
+
+.stat-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9CA3AF;
+}
+
+.stat-value {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+/* Minecraft-themed elements */
+.minecraft-font {
+    -fx-font-family: 'Minecraft', monospace;
+}
+
+.bedwars-level {
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFAA00;
+}
+
+/* Scrollbar styles */
+.scroll-bar {
+    -fx-background-color: #262728;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #4B5563;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #6B7280;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: white;
+} 

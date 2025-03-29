@@ -1,4 +1,0 @@
-pygame>=2.0.0
-requests>=2.25.0
-python-dotenv>=0.15.0
-pywin32>=300; platform_system == "Windows" 
