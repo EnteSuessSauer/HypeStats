@@ -1,134 +1,72 @@
-# HypeStats - Hypixel Bedwars Stats Companion
+## HypeStats - Hypixel Bedwars Stats Companion
 
-HypeStats is a standalone Java application for Minecraft Bedwars players, allowing you to check stats for yourself and players in your current lobby.
+HypeStats is a companion application for Minecraft Bedwars players that provides easy access to player statistics, lobby tracking, and game analysis.
 
-## Features
+### Features
 
-- **Player Lookup**: Search for any Minecraft player and view their detailed Bedwars statistics
-- **Lobby Tracking**: Automatically detects players in your current Bedwars lobby by monitoring your Minecraft log file
-- **Live Stats**: View win/loss ratios, K/D ratios, beds broken, and other important stats
-- **Desktop Application**: JavaFX-based UI that works alongside your Minecraft game
+- Player statistics lookup
+- Real-time tracking of players in your lobby
+- Win/loss predictions based on player statistics
+- Automatic detection of game events through Minecraft log file analysis
 
-## Requirements
+### Requirements
 
 - Java 17 or higher
-- Minecraft with Hypixel Bedwars
-- Hypixel API key
-- Maven (for building or running with the Maven JavaFX plugin)
+- One of the following:
+  - Maven (for auto-compilation and running)
+  - JavaFX SDK (or let HypeStats download it for you)
 
-## Quick Start
+### Quick Start
 
-### Windows
-For the simplest experience, use the Maven-based launcher:
-```
-HypeStats-Maven.bat
-```
+#### Windows
+1. Download or clone the repository
+2. Run `HypeStats.bat`
+3. The launcher will automatically detect and use the best available method to run the application
 
-For running with test mode:
-```
-HypeStats-Maven.bat --test
-```
+#### Mac/Linux
+1. Download or clone the repository
+2. Make the launcher executable: `chmod +x run.sh`
+3. Run `./run.sh`
+4. The launcher will automatically detect and use the best available method to run the application
 
-### Unix/Linux/macOS
+### Test Mode
+
+To start the application in test mode (simulated API calls and log file reading):
+- Windows: `HypeStats.bat --test` or `HypeStats.bat -t`
+- Mac/Linux: `./run.sh --test` or `./run.sh -t`
+
+### Troubleshooting
+
+#### Missing JavaFX Runtime Components
+
+If you see an error about missing JavaFX runtime components, HypeStats will offer to download JavaFX for you. You can also:
+
+1. Download and install JavaFX SDK from [openjfx.io](https://openjfx.io/)
+2. Set the JAVAFX_HOME environment variable to the JavaFX SDK location
+3. Run the launcher again
+
+#### Maven Issues
+
+If Maven fails to build the project:
+1. Make sure you have Java 17 or higher installed
+2. Check your internet connection for downloading dependencies
+3. If you're behind a proxy, configure Maven's settings.xml
+
+### Development
+
+To build and run HypeStats manually:
+
 ```bash
-# Make the script executable (first time only)
-chmod +x run-maven.sh
+# Compile and run
+mvn clean javafx:run
 
-# Run the application
-./run-maven.sh
-
-# Or run in test mode
-./run-maven.sh --test
+# Or compile and run in test mode
+mvn clean javafx:run -Djavafx.args="--test"
 ```
 
-## Running with a Standalone JAR
-If you prefer not to use Maven at runtime, you can create a standalone release package. This requires installing JavaFX separately.
+### License
 
-1. Create a release package:
-```
-create-release.bat   # On Windows
-./create-release.sh  # On Unix/Linux/macOS
-```
-
-2. Install JavaFX SDK from [openjfx.io](https://openjfx.io/)
-
-3. Set the JAVAFX_HOME environment variable:
-```
-set JAVAFX_HOME=C:\path\to\javafx-sdk-17.0.2   # Windows
-export JAVAFX_HOME=/path/to/javafx-sdk-17.0.2  # Unix/Linux/macOS
-```
-
-4. Run the standalone JAR:
-```
-java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar hypestats.jar
-```
-
-## Test Mode
-
-For testing purposes without requiring access to the Hypixel API or actual Minecraft log files:
-
-### Windows
-```
-HypeStats-Maven.bat --test
-```
-
-### Unix/Linux/macOS
-```bash
-./run-maven.sh --test
-```
-
-In test mode:
-- The application will show [TEST MODE] in the window title
-- The API service will generate random mock player data
-- The log file reader will simulate player joins and game events
-- All errors and events are logged to the `./logs` directory for debugging
-
-## Manual Installation
-
-1. Clone this repository
-2. Build with Maven:
-   ```
-   mvn clean package
-   ```
-3. Run with the JavaFX Maven plugin:
-   ```
-   mvn javafx:run
-   ```
-
-## Troubleshooting
-
-### JavaFX Runtime Components Missing
-If you see an error like "JavaFX runtime components are missing", use one of these solutions:
-
-1. Use the Maven-based launcher: `HypeStats-Maven.bat` or `run-maven.sh`
-
-2. Install JavaFX SDK and set JAVAFX_HOME environment variable:
-   ```
-   set JAVAFX_HOME=C:\path\to\javafx-sdk-17.0.2
-   java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar
-   ```
-
-### Maven Not Found
-If you see "Maven is not installed or not in the PATH":
-1. Download Maven from [maven.apache.org](https://maven.apache.org/download.cgi)
-2. Install it and add it to your PATH
-
-## Usage
-
-### Setting Your API Key
-
-1. Get a Hypixel API key by joining the Hypixel Minecraft server (mc.hypixel.net) and typing `/api new` in chat
-2. Enter this API key when prompted in the app
-
-### Player Lookup
-
-Use the search box on the Player Lookup tab to look up any player's Bedwars statistics.
-
-### Lobby Tracking
-
-1. Go to the Lobby Tracker tab
-2. Confirm the path to your Minecraft log file (default paths are automatically detected)
-3. Click "Start Monitoring" to begin detecting players in your lobby
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Project Structure
 
@@ -154,10 +92,6 @@ Use the search box on the Player Lookup tab to look up any player's Bedwars stat
 ## API Rate Limiting
 
 This application respects the Hypixel API rate limits of 120 requests per minute. The app implements client-side rate limiting to ensure you stay within these limits.
-
-## License
-
-MIT
 
 ## Disclaimer
 

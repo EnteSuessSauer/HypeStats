@@ -1,65 +1,126 @@
 @echo off
-echo Starting HypeStats...
+setlocal enabledelayedexpansion
+title HypeStats Launcher
+color 0a
 
 REM Check if test mode flag is passed
 set TEST_MODE=false
 if "%1"=="--test" set TEST_MODE=true
 if "%1"=="-t" set TEST_MODE=true
 
-REM Check for Java
-java -version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Java is not installed or not in the PATH.
-    echo Please install Java 17 or higher and try again.
-    pause
-    exit /b 1
-)
-
-REM Check for the target folder and create it if needed
-if not exist "target" mkdir target
-
-REM Determine if this is the first run or recompilation needed
-if not exist "target\hypestats-1.0-SNAPSHOT.jar" (
-    echo First run - compiling the application...
-    
-    REM Check for Maven
-    mvn -version >nul 2>&1
-    if errorlevel 1 (
-        echo ERROR: Maven is not installed or not in the PATH.
-        echo.
-        echo Please install Maven or use a pre-built version of HypeStats.
-        echo You can download Maven from: https://maven.apache.org/download.cgi
-        pause
-        exit /b 1
-    )
-    
-    call mvn clean package
-    if errorlevel 1 (
-        echo.
-        echo Maven build failed. Here are possible reasons:
-        echo 1. Java version incompatibility - Make sure you're using Java 17+
-        echo 2. Dependency issues - Check if you're connected to the internet
-        echo 3. Compiler errors - Check the output above for specific errors
-        echo.
-        echo To see more detailed error messages, try running:
-        echo mvn clean package -X
-        echo.
-        pause
-        exit /b 1
-    )
-)
-
-REM Run the application with or without test mode
 if "%TEST_MODE%"=="true" (
-    echo Running in TEST MODE - API and log file reading will be simulated
-    java -jar target\hypestats-1.0-SNAPSHOT.jar --test
+    echo Starting HypeStats in TEST MODE...
+    echo This mode simulates API calls and log file reading for testing purposes.
 ) else (
-    java -jar target\hypestats-1.0-SNAPSHOT.jar
+    echo Starting HypeStats - Hypixel Bedwars Stats Companion...
 )
 
-REM If there was an error, pause to show the message
-if errorlevel 1 (
+REM Try different launch methods in order of preference
+set LAUNCH_SUCCESS=false
+
+echo Checking for available launch methods...
+
+REM Try Method 1: Maven JavaFX Plugin (preferred)
+mvn -version >nul 2>&1
+if not errorlevel 1 (
+    echo Launch Method: Maven JavaFX Plugin
+    
+    if "%TEST_MODE%"=="true" (
+        mvn javafx:run -Djavafx.args="--test"
+    ) else (
+        mvn javafx:run
+    )
+    
+    if not errorlevel 1 (
+        set LAUNCH_SUCCESS=true
+        goto :end
+    ) else (
+        echo Maven launch failed, trying alternative methods...
+    )
+)
+
+REM Try Method 2: Check for JavaFX SDK
+set JAVAFX_FOUND=false
+
+if defined JAVAFX_HOME (
+    if exist "%JAVAFX_HOME%\lib" set JAVAFX_FOUND=true
+) else (
+    REM Try to find JavaFX in common locations
+    for %%p in (
+        "C:\Program Files\JavaFX\javafx-sdk*"
+        "C:\javafx-sdk*"
+        "%USERPROFILE%\javafx-sdk*"
+        "%ProgramFiles%\Java\javafx-sdk*"
+    ) do (
+        if exist "%%~p\lib\javafx.base.jar" (
+            set JAVAFX_HOME=%%~p
+            set JAVAFX_FOUND=true
+            echo Found JavaFX SDK at: !JAVAFX_HOME!
+            goto :javafx_found
+        )
+    )
+)
+
+:javafx_found
+if "%JAVAFX_FOUND%"=="true" (
+    echo Launch Method: Java with JavaFX modules
+    
+    if "%TEST_MODE%"=="true" (
+        java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar --test
+    ) else (
+        java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar
+    )
+    
+    if not errorlevel 1 (
+        set LAUNCH_SUCCESS=true
+        goto :end
+    ) else (
+        echo JavaFX launch failed, trying next method...
+    )
+)
+
+REM Try Method 3: Download JavaFX SDK automatically
+if not exist "javafx-sdk" (
+    echo JavaFX not found. Would you like to download it automatically? (Y/N)
+    set /p DOWNLOAD_CHOICE=
+    if /i "!DOWNLOAD_CHOICE!"=="Y" (
+        echo Downloading JavaFX SDK...
+        powershell -Command "Invoke-WebRequest -Uri https://download2.gluonhq.com/openjfx/17.0.2/openjfx-17.0.2_windows-x64_bin-sdk.zip -OutFile javafx.zip"
+        echo Extracting JavaFX SDK...
+        powershell -Command "Expand-Archive -Path javafx.zip -DestinationPath . -Force"
+        rename openjfx-17.0.2_windows-x64_bin-sdk javafx-sdk
+        del javafx.zip
+        set JAVAFX_HOME=%CD%\javafx-sdk
+        
+        echo Launch Method: Java with downloaded JavaFX modules
+        
+        if "%TEST_MODE%"=="true" (
+            java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar --test
+        ) else (
+            java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar
+        )
+        
+        if not errorlevel 1 (
+            set LAUNCH_SUCCESS=true
+            goto :end
+        )
+    )
+)
+
+:end
+if "%LAUNCH_SUCCESS%"=="false" (
+    color 0c
     echo.
-    echo Application terminated with an error.
-    pause
-) 
+    echo ============================================================
+    echo Launch failed. Please try one of the following:
+    echo.
+    echo 1. Install Maven: https://maven.apache.org/download.cgi
+    echo 2. Install JavaFX SDK: https://openjfx.io/
+    echo    and set JAVAFX_HOME environment variable
+    echo 3. Manually run: mvn javafx:run
+    echo ============================================================
+    echo.
+)
+
+echo.
+pause 
