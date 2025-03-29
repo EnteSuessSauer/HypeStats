@@ -21,117 +21,43 @@ else
     echo "Starting HypeStats..."
 fi
 
-# Try different launch methods in order of preference
-LAUNCH_SUCCESS=false
-
-echo "Checking for available launch methods..."
-
-# Try Method 1: Maven JavaFX Plugin (preferred)
-if command -v mvn &> /dev/null; then
-    echo "Launch Method: Maven JavaFX Plugin"
-    
-    if [ "$TEST_MODE" = true ]; then
-        mvn javafx:run -Djavafx.args="--test"
-    else
-        mvn javafx:run
-    fi
-    
-    if [ $? -eq 0 ]; then
-        LAUNCH_SUCCESS=true
-        exit 0
-    else
-        echo "Maven launch failed, trying alternative methods..."
-    fi
+# Check for Java
+if ! command -v java &> /dev/null; then
+    echo -e "${RED}ERROR: Java not found!${NC}"
+    echo "Please install Java 17 or higher."
+    echo "Visit: https://adoptium.net/"
+    exit 1
 fi
 
-# Try Method 2: Check for JavaFX SDK
-JAVAFX_FOUND=false
+# Check for Maven
+if ! command -v mvn &> /dev/null; then
+    echo -e "${RED}ERROR: Maven not found!${NC}"
+    echo "Please install Maven from: https://maven.apache.org/download.cgi"
+    echo "Make sure it's added to your PATH."
+    exit 1
+fi
 
-if [ -n "$JAVAFX_HOME" ] && [ -d "$JAVAFX_HOME/lib" ]; then
-    JAVAFX_FOUND=true
+# Create target directory if it doesn't exist
+mkdir -p target
+
+echo "Building and running the application..."
+echo
+
+if [ "$TEST_MODE" = true ]; then
+    mvn clean javafx:run -Djavafx.args="--test"
 else
-    # Try to find JavaFX in common locations
-    for p in \
-        "/usr/lib/jvm/javafx-sdk"* \
-        "/opt/javafx-sdk"* \
-        "$HOME/javafx-sdk"* \
-        "./javafx-sdk"*
-    do
-        if [ -f "$p/lib/javafx.base.jar" ]; then
-            JAVAFX_HOME="$p"
-            JAVAFX_FOUND=true
-            echo "Found JavaFX SDK at: $JAVAFX_HOME"
-            break
-        fi
-    done
+    mvn clean javafx:run
 fi
 
-if [ "$JAVAFX_FOUND" = true ]; then
-    echo "Launch Method: Java with JavaFX modules"
-    
-    if [ "$TEST_MODE" = true ]; then
-        java --module-path "$JAVAFX_HOME/lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target/hypestats-1.0-SNAPSHOT.jar --test
-    else
-        java --module-path "$JAVAFX_HOME/lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target/hypestats-1.0-SNAPSHOT.jar
-    fi
-    
-    if [ $? -eq 0 ]; then
-        LAUNCH_SUCCESS=true
-        exit 0
-    else
-        echo "JavaFX launch failed, trying next method..."
-    fi
-fi
-
-# Try Method 3: Download JavaFX SDK automatically
-if [ ! -d "javafx-sdk" ]; then
-    echo -e "${YELLOW}JavaFX not found. Would you like to download it automatically? (Y/N)${NC}"
-    read -r DOWNLOAD_CHOICE
-    if [ "$DOWNLOAD_CHOICE" = "Y" ] || [ "$DOWNLOAD_CHOICE" = "y" ]; then
-        echo "Downloading JavaFX SDK..."
-        
-        # Detect OS
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS
-            curl -L https://download2.gluonhq.com/openjfx/17.0.2/openjfx-17.0.2_osx-x64_bin-sdk.zip -o javafx.zip
-        else
-            # Linux
-            curl -L https://download2.gluonhq.com/openjfx/17.0.2/openjfx-17.0.2_linux-x64_bin-sdk.zip -o javafx.zip
-        fi
-        
-        echo "Extracting JavaFX SDK..."
-        unzip -q javafx.zip
-        mv javafx-sdk-17.0.2 javafx-sdk
-        rm javafx.zip
-        JAVAFX_HOME="$(pwd)/javafx-sdk"
-        
-        echo "Launch Method: Java with downloaded JavaFX modules"
-        
-        if [ "$TEST_MODE" = true ]; then
-            java --module-path "$JAVAFX_HOME/lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target/hypestats-1.0-SNAPSHOT.jar --test
-        else
-            java --module-path "$JAVAFX_HOME/lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target/hypestats-1.0-SNAPSHOT.jar
-        fi
-        
-        if [ $? -eq 0 ]; then
-            LAUNCH_SUCCESS=true
-            exit 0
-        fi
-    fi
-fi
-
-if [ "$LAUNCH_SUCCESS" = false ]; then
+if [ $? -ne 0 ]; then
     echo -e "${RED}"
-    echo "============================================================"
-    echo "Launch failed. Please try one of the following:"
-    echo ""
-    echo "1. Install Maven: https://maven.apache.org/download.cgi"
-    echo "2. Install JavaFX SDK: https://openjfx.io/"
-    echo "   and set JAVAFX_HOME environment variable"
-    echo "3. Manually run: mvn javafx:run"
-    echo "============================================================"
+    echo "Failed to run HypeStats."
+    echo "See error messages above."
     echo -e "${NC}"
+    exit 1
 fi
 
-echo ""
+echo
+echo "HypeStats has exited successfully."
+echo
 read -p "Press [Enter] to exit..." 

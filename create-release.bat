@@ -42,65 +42,113 @@ echo Copying files to release directory...
 copy "target\hypestats-1.0-SNAPSHOT.jar" "release\hypestats.jar"
 copy "README.md" "release\"
 copy "LICENSE" "release\" 2>nul
-copy "run.bat" "release\"
 copy "run.sh" "release\"
-copy "HypeStats.bat" "release\"
-copy "HypeStats-Test.bat" "release\"
 
 echo.
-echo Creating no-compile launcher for release...
+echo Creating launcher scripts for release...
+
+REM Create Windows launcher
 (
 echo @echo off
-echo echo Starting HypeStats...
+echo title HypeStats - Hypixel Bedwars Stats Companion
+echo color 0a
+echo.
+echo REM Check if test mode flag is passed
+echo set TEST_MODE=false
+echo if "%%1"=="--test" set TEST_MODE=true
+echo if "%%1"=="-t" set TEST_MODE=true
+echo.
+echo if "%%TEST_MODE%%"=="true" ^(
+echo     echo Starting HypeStats in TEST MODE...
+echo     echo This mode simulates API calls and log file reading for testing purposes.
+echo ^) else ^(
+echo     echo Starting HypeStats - Hypixel Bedwars Stats Companion...
+echo ^)
 echo.
 echo REM Check for Java
 echo java -version ^>nul 2^>^&1
 echo if errorlevel 1 ^(
-echo     echo ERROR: Java is not installed or not in the PATH.
-echo     echo Please install Java 17 or higher and try again.
+echo     color 0c
+echo     echo ERROR: Java not found!
+echo     echo Please install Java 17 or higher from https://adoptium.net/
 echo     pause
 echo     exit /b 1
 echo ^)
 echo.
-echo REM Run the application
-echo java -jar hypestats.jar
-echo.
-echo REM If there was an error, pause to show the message
-echo if errorlevel 1 ^(
-echo     echo.
-echo     echo Application terminated with an error.
-echo     pause
+echo if "%%TEST_MODE%%"=="true" ^(
+echo     java -jar hypestats.jar --test
+echo ^) else ^(
+echo     java -jar hypestats.jar
 echo ^)
-) > "release\HypeStats-Run.bat"
+echo.
+echo if errorlevel 1 ^(
+echo     color 0c
+echo     echo.
+echo     echo Failed to run HypeStats.
+echo     echo See error messages above.
+echo     echo.
+echo     pause
+echo     exit /b 1
+echo ^)
+echo.
+echo echo.
+echo echo HypeStats has exited successfully.
+echo echo.
+echo pause
+) > "release\HypeStats.bat"
 
+REM Create Unix launcher
 (
-echo @echo off
-echo echo Starting HypeStats in TEST MODE...
-echo echo.
-echo echo This mode simulates API calls and log file reading for testing purposes.
-echo echo All errors and events are logged to the ./logs directory.
-echo echo.
+echo #!/bin/bash
 echo.
-echo REM Check for Java
-echo java -version ^>nul 2^>^&1
-echo if errorlevel 1 ^(
-echo     echo ERROR: Java is not installed or not in the PATH.
-echo     echo Please install Java 17 or higher and try again.
-echo     pause
-echo     exit /b 1
-echo ^)
+echo # Set terminal colors
+echo GREEN='\033[0;32m'
+echo RED='\033[0;31m'
+echo YELLOW='\033[1;33m'
+echo NC='\033[0m' # No Color
 echo.
-echo REM Run the application in test mode
-echo java -jar hypestats.jar --test
+echo # Show banner
+echo echo -e "${GREEN}"
+echo echo "HypeStats - Hypixel Bedwars Stats Companion"
+echo echo -e "${NC}"
 echo.
-echo REM If there was an error, pause to show the message
-echo if errorlevel 1 ^(
-echo     echo.
-echo     echo Application terminated with an error.
-echo     echo Check the logs directory for details.
-echo     pause
-echo ^)
-) > "release\HypeStats-Test-Run.bat"
+echo # Check if test mode flag is passed
+echo TEST_MODE=false
+echo if [ "$1" == "--test" ] ^|^| [ "$1" == "-t" ]; then
+echo     TEST_MODE=true
+echo     echo -e "${YELLOW}Starting HypeStats in TEST MODE...${NC}"
+echo     echo "This mode simulates API calls and log file reading for testing purposes."
+echo else
+echo     echo "Starting HypeStats..."
+echo fi
+echo.
+echo # Check for Java
+echo if ! command -v java ^&^> /dev/null; then
+echo     echo -e "${RED}ERROR: Java not found!${NC}"
+echo     echo "Please install Java 17 or higher."
+echo     echo "Visit: https://adoptium.net/"
+echo     exit 1
+echo fi
+echo.
+echo if [ "$TEST_MODE" = true ]; then
+echo     java -jar hypestats.jar --test
+echo else
+echo     java -jar hypestats.jar
+echo fi
+echo.
+echo if [ $? -ne 0 ]; then
+echo     echo -e "${RED}"
+echo     echo "Failed to run HypeStats."
+echo     echo "See error messages above."
+echo     echo -e "${NC}"
+echo     exit 1
+echo fi
+echo.
+echo echo
+echo echo "HypeStats has exited successfully."
+echo echo
+echo read -p "Press [Enter] to exit..."
+) > "release\run.sh"
 
 echo.
 echo Creating release ZIP file...
