@@ -42,7 +42,7 @@ echo Copying files to release directory...
 copy "target\hypestats-1.0-SNAPSHOT.jar" "release\hypestats.jar"
 copy "README.md" "release\"
 copy "LICENSE" "release\" 2>nul
-copy "run.sh" "release\"
+copy "HypeStats.sh" "release\"
 
 echo.
 echo Creating launcher scripts for release...

@@ -44,6 +44,7 @@ echo "Copying files to release directory..."
 cp target/hypestats-1.0-SNAPSHOT.jar release/hypestats.jar
 cp README.md release/
 cp LICENSE release/ 2>/dev/null
+cp HypeStats.sh release/
 
 echo
 echo "Creating launcher scripts for release..."

@@ -33,15 +33,15 @@ HypeStats is a companion application for Minecraft Bedwars players that provides
 2. The launcher will automatically detect Maven (even if not in PATH), check dependencies, and run the application
 
 #### Mac/Linux
-1. Make the launcher executable: `chmod +x run.sh`
-2. Run `./run.sh`
+1. Make the launcher executable: `chmod +x HypeStats.sh`
+2. Run `./HypeStats.sh`
 3. The launcher will automatically detect and use the best available method to run the application
 
 ### Test Mode
 
 To start the application in test mode (simulated API calls and log file reading):
 - Windows: `HypeStats.bat --test` or `HypeStats.bat -t`
-- Mac/Linux: `./run.sh --test` or `./run.sh -t`
+- Mac/Linux: `./HypeStats.sh --test` or `./HypeStats.sh -t`
 
 ### Troubleshooting
 
@@ -100,6 +100,9 @@ The full license text is available in the LICENSE file included with this projec
   - `fxml/` - FXML layout files
   - `images/` - Application images
 - `logs/` - Development and error logs (created during test mode)
+- `scripts/` - Build and release scripts
+  - `create-release.bat` - Windows release script
+  - `create-release.sh` - Mac/Linux release script
 
 ## Technologies Used
 
