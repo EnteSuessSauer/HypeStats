@@ -11,22 +11,56 @@ HypeStats is a standalone Java application for Minecraft Bedwars players, allowi
 
 ## Requirements
 
-- Java 11 or higher
+- Java 17 or higher
 - Minecraft with Hypixel Bedwars
 - Hypixel API key
+- Maven (for building or running with the Maven JavaFX plugin)
 
 ## Quick Start
 
 ### Windows
-Simply double-click the `HypeStats.bat` file to run the application. On first run, it will automatically compile the application.
+For the simplest experience, use the Maven-based launcher:
+```
+HypeStats-Maven.bat
+```
+
+For running with test mode:
+```
+HypeStats-Maven.bat --test
+```
 
 ### Unix/Linux/macOS
 ```bash
 # Make the script executable (first time only)
-chmod +x run.sh
+chmod +x run-maven.sh
 
 # Run the application
-./run.sh
+./run-maven.sh
+
+# Or run in test mode
+./run-maven.sh --test
+```
+
+## Running with a Standalone JAR
+If you prefer not to use Maven at runtime, you can create a standalone release package. This requires installing JavaFX separately.
+
+1. Create a release package:
+```
+create-release.bat   # On Windows
+./create-release.sh  # On Unix/Linux/macOS
+```
+
+2. Install JavaFX SDK from [openjfx.io](https://openjfx.io/)
+
+3. Set the JAVAFX_HOME environment variable:
+```
+set JAVAFX_HOME=C:\path\to\javafx-sdk-17.0.2   # Windows
+export JAVAFX_HOME=/path/to/javafx-sdk-17.0.2  # Unix/Linux/macOS
+```
+
+4. Run the standalone JAR:
+```
+java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar hypestats.jar
 ```
 
 ## Test Mode
@@ -34,14 +68,13 @@ chmod +x run.sh
 For testing purposes without requiring access to the Hypixel API or actual Minecraft log files:
 
 ### Windows
-Double-click the `HypeStats-Test.bat` file to launch in test mode, or run:
 ```
-HypeStats.bat --test
+HypeStats-Maven.bat --test
 ```
 
 ### Unix/Linux/macOS
 ```bash
-./run.sh --test
+./run-maven.sh --test
 ```
 
 In test mode:
@@ -57,10 +90,28 @@ In test mode:
    ```
    mvn clean package
    ```
-3. Run the JAR file:
+3. Run with the JavaFX Maven plugin:
    ```
-   java -jar target/hypestats-1.0-SNAPSHOT.jar
+   mvn javafx:run
    ```
+
+## Troubleshooting
+
+### JavaFX Runtime Components Missing
+If you see an error like "JavaFX runtime components are missing", use one of these solutions:
+
+1. Use the Maven-based launcher: `HypeStats-Maven.bat` or `run-maven.sh`
+
+2. Install JavaFX SDK and set JAVAFX_HOME environment variable:
+   ```
+   set JAVAFX_HOME=C:\path\to\javafx-sdk-17.0.2
+   java --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web -jar target\hypestats-1.0-SNAPSHOT.jar
+   ```
+
+### Maven Not Found
+If you see "Maven is not installed or not in the PATH":
+1. Download Maven from [maven.apache.org](https://maven.apache.org/download.cgi)
+2. Install it and add it to your PATH
 
 ## Usage
 
