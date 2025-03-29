@@ -3,6 +3,8 @@ package com.hypestats.util;
 import com.hypestats.HypeStatsApp;
 import com.hypestats.model.MinecraftLog;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -21,6 +23,7 @@ import java.util.Random;
  */
 @Slf4j
 public class MinecraftLogWatcher {
+    private static final Logger log = LoggerFactory.getLogger(MinecraftLogWatcher.class);
 
     private static final Pattern LOG_PATTERN = Pattern.compile("\\[(\\d{2}:\\d{2}:\\d{2})\\] \\[.+?\\]: (.*)");
     private static final Pattern PLAYER_JOIN_PATTERN = Pattern.compile("ONLINE: (.+)");

@@ -15,6 +15,10 @@ public class MinecraftLog {
     private String message;
     private LogType type;
     
+    public MinecraftLog() {
+        // Default constructor
+    }
+    
     public enum LogType {
         INFO,
         WARN,

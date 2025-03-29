@@ -17,6 +17,8 @@ import javafx.scene.control.TabPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
@@ -28,6 +30,7 @@ import java.net.URISyntaxException;
  */
 @Slf4j
 public class MainController {
+    private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
     @FXML
     private Label statusLabel;

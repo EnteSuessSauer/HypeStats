@@ -9,6 +9,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +23,7 @@ import java.util.Random;
  */
 @Slf4j
 public class HypixelApiService {
+    private static final Logger log = LoggerFactory.getLogger(HypixelApiService.class);
     private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
     private static final String HYPIXEL_API_URL = "https://api.hypixel.net/player";
     private static final int MAX_REQUESTS_PER_MINUTE = 110; // Hypixel allows 120/min but we use 110 to be safe

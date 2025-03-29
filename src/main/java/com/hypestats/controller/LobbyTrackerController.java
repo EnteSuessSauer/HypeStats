@@ -17,6 +17,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -29,6 +31,7 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class LobbyTrackerController {
+    private static final Logger log = LoggerFactory.getLogger(LobbyTrackerController.class);
     
     @FXML
     private TextField logPathField;
