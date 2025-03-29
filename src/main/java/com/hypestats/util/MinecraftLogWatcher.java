@@ -3,13 +3,10 @@ package com.hypestats.util;
 import com.hypestats.HypeStatsApp;
 import com.hypestats.model.MinecraftLog;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,8 +20,6 @@ import java.util.Random;
  */
 @Slf4j
 public class MinecraftLogWatcher {
-    private static final Logger log = LoggerFactory.getLogger(MinecraftLogWatcher.class);
-
     private static final Pattern LOG_PATTERN = Pattern.compile("\\[(\\d{2}:\\d{2}:\\d{2})\\] \\[.+?\\]: (.*)");
     private static final Pattern PLAYER_JOIN_PATTERN = Pattern.compile("ONLINE: (.+)");
     private static final Pattern LOBBY_JOIN_PATTERN = Pattern.compile(".*has joined \\((?:.|\\d)+/\\d+\\)!$");
@@ -406,8 +401,6 @@ public class MinecraftLogWatcher {
      * @throws IOException If an error occurs reading the file
      */
     private List<String> readNewLines(Path logPath, long lastPos) throws IOException {
-        List<String> lines = new ArrayList<>();
-        
         List<String> allLines = Files.readAllLines(logPath);
         
         // Approximation: if lastPos is 0, read all lines
@@ -434,7 +427,6 @@ public class MinecraftLogWatcher {
             String message = logMatcher.group(2);
             
             // Parse timestamp
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             LocalDateTime timestamp = LocalDateTime.now().withHour(Integer.parseInt(timeStr.substring(0, 2)))
                     .withMinute(Integer.parseInt(timeStr.substring(3, 5)))
                     .withSecond(Integer.parseInt(timeStr.substring(6, 8)));

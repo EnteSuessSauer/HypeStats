@@ -1,8 +1,6 @@
 package com.hypestats.util;
 
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -15,7 +13,6 @@ import java.util.Properties;
  */
 @Slf4j
 public class SettingsManager {
-    private static final Logger log = LoggerFactory.getLogger(SettingsManager.class);
     private static final String SETTINGS_DIR = ".hypestats";
     private static final String SETTINGS_FILE = "settings.properties";
     private static final String API_KEY = "hypixel.api.key";

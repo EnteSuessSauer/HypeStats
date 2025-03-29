@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Objects;
 
 @Slf4j
 public class HypeStatsApp extends Application {
