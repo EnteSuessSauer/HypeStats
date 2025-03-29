@@ -36,17 +36,92 @@
                 <!-- Player header -->
                 <HBox spacing="10" alignment="CENTER_LEFT">
                     <ImageView fx:id="playerHead" fitWidth="64" fitHeight="64" preserveRatio="true"/>
-                    <VBox>
+                    <VBox spacing="2">
                         <HBox spacing="5" alignment="CENTER_LEFT">
                             <Label fx:id="rankLabel" styleClass="text-AQUA" visible="false"/>
                             <Label fx:id="usernameLabel" styleClass="header-label"/>
+                            <Label fx:id="guildTagLabel" styleClass="guild-tag" visible="false"/>
                         </HBox>
-                        <Label fx:id="levelLabel" styleClass="bedwars-level"/>
+                        <Label fx:id="levelLabel" styleClass="level-display"/>
+                        <Label fx:id="statusLabel" styleClass="status-label" visible="false"/>
                     </VBox>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <HBox fx:id="socialLinksContainer" spacing="8" alignment="CENTER_RIGHT" styleClass="social-links"/>
                 </HBox>
                 
-                <!-- Stats grids -->
-                <TitledPane text="General Stats" expanded="true">
+                <!-- Top Stats Section -->
+                <TitledPane text="Top Stats" expanded="true">
+                    <VBox fx:id="topStatsContainer" styleClass="top-stats-container" spacing="5">
+                        <Label text="No exceptional stats to display" styleClass="stat-average"/>
+                    </VBox>
+                </TitledPane>
+                
+                <!-- Network Stats -->
+                <TitledPane text="Network Stats" expanded="true">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Network Level" styleClass="stat-label"/>
+                            <Label fx:id="networkLevelLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Karma" styleClass="stat-label"/>
+                            <Label fx:id="karmaLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="Achievement Points" styleClass="stat-label"/>
+                            <HBox spacing="3" alignment="CENTER_LEFT">
+                                <Label fx:id="achievementPointsLabel" styleClass="stat-value" text="0"/>
+                                <Label text="(" styleClass="stat-value-suffix"/>
+                                <Label fx:id="achievementCompletionLabel" styleClass="stat-value-suffix" text="0%"/>
+                                <Label text=")" styleClass="stat-value-suffix"/>
+                            </HBox>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="Account Age" styleClass="stat-label"/>
+                            <Label fx:id="accountAgeLabel" styleClass="stat-value" text="0 days"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Playtime" styleClass="stat-label"/>
+                            <Label fx:id="playtimeLabel" styleClass="stat-value" text="Unknown"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Guild Information -->
+                <TitledPane text="Guild Information" expanded="false" fx:id="guildPane" visible="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="50"/>
+                            <ColumnConstraints percentWidth="50"/>
+                        </columnConstraints>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Guild Name" styleClass="stat-label"/>
+                            <Label fx:id="guildNameLabel" styleClass="stat-value" text="None"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Guild Rank" styleClass="stat-label"/>
+                            <Label fx:id="guildRankLabel" styleClass="stat-value" text="None"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Bedwars Stats -->
+                <TitledPane text="Bedwars Stats" expanded="true">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -96,10 +171,43 @@
                             <Label text="Games Played" styleClass="stat-label"/>
                             <Label fx:id="gamesPlayedLabel" styleClass="stat-value" text="0"/>
                         </VBox>
+                        
+                        <!-- Row 3 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                            <Label text="Final Kills" styleClass="stat-label"/>
+                            <Label fx:id="finalKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <Label text="Final Deaths" styleClass="stat-label"/>
+                            <Label fx:id="finalDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                            <Label text="Final K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="finalKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                        
+                        <!-- Row 4 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                            <Label text="Beds Broken" styleClass="stat-label"/>
+                            <Label fx:id="bedsBrokenLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                            <Label text="Beds Lost" styleClass="stat-label"/>
+                            <Label fx:id="bedsLostLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="3">
+                            <Label text="Bed Ratio" styleClass="stat-label"/>
+                            <Label fx:id="bedRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
                     </GridPane>
                 </TitledPane>
                 
-                <TitledPane text="Final Kills &amp; Beds" expanded="true">
+                <!-- Skywars Stats -->
+                <TitledPane text="Skywars Stats" expanded="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -110,44 +218,362 @@
                         
                         <!-- Row 1 -->
                         <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                            <Label text="Final Kills" styleClass="stat-label"/>
-                            <Label fx:id="finalKillsLabel" styleClass="stat-value" text="0"/>
+                            <Label text="Level" styleClass="stat-label"/>
+                            <Label fx:id="skywarsLevelLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <Label text="Final Deaths" styleClass="stat-label"/>
-                            <Label fx:id="finalDeathsLabel" styleClass="stat-value" text="0"/>
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="skywarsWinsLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
-                            <Label text="Final K/D Ratio" styleClass="stat-label"/>
-                            <Label fx:id="finalKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                            <Label text="Losses" styleClass="stat-label"/>
+                            <Label fx:id="skywarsLossesLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
-                            <Label text="" styleClass="stat-label"/>
-                            <Label text="" styleClass="stat-value"/>
+                            <Label text="W/L Ratio" styleClass="stat-label"/>
+                            <Label fx:id="skywarsWlRatioLabel" styleClass="stat-value" text="0.00"/>
                         </VBox>
                         
                         <!-- Row 2 -->
                         <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                            <Label text="Beds Broken" styleClass="stat-label"/>
-                            <Label fx:id="bedsBrokenLabel" styleClass="stat-value" text="0"/>
+                            <Label text="Kills" styleClass="stat-label"/>
+                            <Label fx:id="skywarsKillsLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <Label text="Beds Lost" styleClass="stat-label"/>
-                            <Label fx:id="bedsLostLabel" styleClass="stat-value" text="0"/>
+                            <Label text="Deaths" styleClass="stat-label"/>
+                            <Label fx:id="skywarsDeathsLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
-                            <Label text="Bed Ratio" styleClass="stat-label"/>
-                            <Label fx:id="bedRatioLabel" styleClass="stat-value" text="0.00"/>
+                            <Label text="K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="skywarsKdRatioLabel" styleClass="stat-value" text="0.00"/>
                         </VBox>
                         
                         <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="1">
-                            <Label text="" styleClass="stat-label"/>
-                            <Label text="" styleClass="stat-value"/>
+                            <Label text="Games Played" styleClass="stat-label"/>
+                            <Label fx:id="skywarsGamesPlayedLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Duels Stats -->
+                <TitledPane text="Duels Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="duelsWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Losses" styleClass="stat-label"/>
+                            <Label fx:id="duelsLossesLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="W/L Ratio" styleClass="stat-label"/>
+                            <Label fx:id="duelsWlRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="Games Played" styleClass="stat-label"/>
+                            <Label fx:id="duelsGamesPlayedLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Kills" styleClass="stat-label"/>
+                            <Label fx:id="duelsKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Deaths" styleClass="stat-label"/>
+                            <Label fx:id="duelsDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label text="K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="duelsKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Murder Mystery Stats -->
+                <TitledPane text="Murder Mystery Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="mmWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Games Played" styleClass="stat-label"/>
+                            <Label fx:id="mmGamesPlayedLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="Win Rate" styleClass="stat-label"/>
+                            <Label fx:id="mmWinRateLabel" styleClass="stat-value" text="0%"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="Coins" styleClass="stat-label"/>
+                            <Label fx:id="mmCoinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Kills" styleClass="stat-label"/>
+                            <Label fx:id="mmKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Deaths" styleClass="stat-label"/>
+                            <Label fx:id="mmDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label text="K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="mmKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- TNT Games Stats -->
+                <TitledPane text="TNT Games Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Total Wins" styleClass="stat-label"/>
+                            <Label fx:id="tntgamesWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Coins" styleClass="stat-label"/>
+                            <Label fx:id="tntgamesCoinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="TNT Run Wins" styleClass="stat-label"/>
+                            <Label fx:id="tntRunWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="TNT Run Record" styleClass="stat-label"/>
+                            <Label fx:id="tntRunRecordLabel" styleClass="stat-value" text="0s"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Bow Spleef Wins" styleClass="stat-label"/>
+                            <Label fx:id="bowSpleefWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Wizards Wins" styleClass="stat-label"/>
+                            <Label fx:id="wizardsWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label text="PVP Run Wins" styleClass="stat-label"/>
+                            <Label fx:id="pvpRunWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- UHC Stats -->
+                <TitledPane text="UHC Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="uhcWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Coins" styleClass="stat-label"/>
+                            <Label fx:id="uhcCoinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="Score" styleClass="stat-label"/>
+                            <Label fx:id="uhcScoreLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Kills" styleClass="stat-label"/>
+                            <Label fx:id="uhcKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Deaths" styleClass="stat-label"/>
+                            <Label fx:id="uhcDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label text="K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="uhcKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Build Battle Stats -->
+                <TitledPane text="Build Battle Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="buildBattleWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Games Played" styleClass="stat-label"/>
+                            <Label fx:id="buildBattleGamesPlayedLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="Win Rate" styleClass="stat-label"/>
+                            <Label fx:id="buildBattleWinRateLabel" styleClass="stat-value" text="0%"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="Coins" styleClass="stat-label"/>
+                            <Label fx:id="buildBattleCoinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Score" styleClass="stat-label"/>
+                            <Label fx:id="buildBattleScoreLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- Mega Walls Stats -->
+                <TitledPane text="Mega Walls Stats" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Wins" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsWinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Assists" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsAssistsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <!-- Row 2 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="Kills" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="Deaths" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Label text="K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                        
+                        <!-- Row 3 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                            <Label text="Final Kills" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsFinalKillsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <Label text="Final Deaths" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsFinalDeathsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                            <Label text="Final K/D Ratio" styleClass="stat-label"/>
+                            <Label fx:id="megaWallsFinalKdRatioLabel" styleClass="stat-value" text="0.00"/>
+                        </VBox>
+                    </GridPane>
+                </TitledPane>
+                
+                <!-- SkyBlock Stats (Basic) -->
+                <TitledPane text="SkyBlock Stats (Basic)" expanded="false">
+                    <GridPane styleClass="stats-grid" hgap="10" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                            <ColumnConstraints percentWidth="25"/>
+                        </columnConstraints>
+                        
+                        <!-- Row 1 -->
+                        <VBox styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="Profile" styleClass="stat-label"/>
+                            <Label fx:id="skyblockProfileLabel" styleClass="stat-value" text="None"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="Total Coins" styleClass="stat-label"/>
+                            <Label fx:id="skyblockCoinsLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Label text="Bank" styleClass="stat-label"/>
+                            <Label fx:id="skyblockBankLabel" styleClass="stat-value" text="0"/>
+                        </VBox>
+                        
+                        <VBox styleClass="stat-card" GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Label text="Purse" styleClass="stat-label"/>
+                            <Label fx:id="skyblockPurseLabel" styleClass="stat-value" text="0"/>
                         </VBox>
                     </GridPane>
                 </TitledPane>
