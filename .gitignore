@@ -1,0 +1,30 @@
+# Java build files
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Temp files
+*.tmp
+*.log
+
+# JavaFX SDK
+javafx-sdk*/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+nbproject/
+
+# macOS
+.DS_Store 
