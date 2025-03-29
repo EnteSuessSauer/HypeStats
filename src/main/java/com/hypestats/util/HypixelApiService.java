@@ -791,44 +791,85 @@ public class HypixelApiService {
         if (statsObj.has("SkyBlock") && !statsObj.get("SkyBlock").isJsonNull()) {
             JsonObject skyBlockStats = statsObj.getAsJsonObject("SkyBlock");
             
-            if (skyBlockStats.has("profiles") && !skyBlockStats.get("profiles").isJsonNull()) {
-                JsonArray profiles = skyBlockStats.getAsJsonArray("profiles");
-                if (profiles.size() > 0) {
-                    JsonObject profile = profiles.get(0).getAsJsonObject();
+            if (skyBlockStats.has("profiles")) {
+                JsonElement profiles = skyBlockStats.get("profiles");
+                
+                // Handle different profile structures - can be either object or array
+                if (profiles.isJsonObject()) {
+                    // Handle as object - likely the new API format
+                    JsonObject profilesObj = profiles.getAsJsonObject();
                     
-                    // Get profile name
-                    if (profile.has("cute_name")) {
-                        stats.setSkyblockProfile(profile.get("cute_name").getAsString());
-                    }
-                    
-                    // Get basic economy stats
-                    if (profile.has("banking") && !profile.get("banking").isJsonNull()) {
-                        JsonObject banking = profile.getAsJsonObject("banking");
-                        if (banking.has("balance")) {
-                            stats.setSkyblockBank((int) banking.get("balance").getAsDouble());
+                    // Just take the first profile we find
+                    for (Map.Entry<String, JsonElement> entry : profilesObj.entrySet()) {
+                        if (entry.getValue().isJsonObject()) {
+                            JsonObject profile = entry.getValue().getAsJsonObject();
+                            setProfileData(stats, profile);
+                            break; // Just use the first profile
                         }
                     }
-                    
-                    if (profile.has("coin_purse")) {
-                        stats.setSkyblockPurse((int) profile.get("coin_purse").getAsDouble());
-                    }
-                    
-                    // Total coins estimation
-                    stats.setSkyblockCoins(stats.getSkyblockBank() + stats.getSkyblockPurse());
-                    
-                    // We would need separate API calls for skill levels
-                    // For now, setting default values
-                    stats.setSkyblockFarmingLevel(1);
-                    stats.setSkyblockMiningLevel(1);
-                    stats.setSkyblockCombatLevel(1);
-                    stats.setSkyblockForagingLevel(1);
-                    stats.setSkyblockFishingLevel(1);
-                    stats.setSkyblockEnchantingLevel(1);
-                    stats.setSkyblockAlchemyLevel(1);
-                    stats.setSkyblockTamingLevel(1);
+                } else if (profiles.isJsonArray() && profiles.getAsJsonArray().size() > 0) {
+                    // Handle as array - older API format
+                    JsonObject profile = profiles.getAsJsonArray().get(0).getAsJsonObject();
+                    setProfileData(stats, profile);
                 }
             }
         }
+        
+        // If we didn't get any SkyBlock data, set defaults
+        if (stats.getSkyblockProfile() == null) {
+            stats.setSkyblockProfile("None");
+            stats.setSkyblockBank(0);
+            stats.setSkyblockPurse(0);
+            stats.setSkyblockCoins(0);
+            
+            // Set default skill levels
+            stats.setSkyblockFarmingLevel(1);
+            stats.setSkyblockMiningLevel(1);
+            stats.setSkyblockCombatLevel(1);
+            stats.setSkyblockForagingLevel(1);
+            stats.setSkyblockFishingLevel(1);
+            stats.setSkyblockEnchantingLevel(1);
+            stats.setSkyblockAlchemyLevel(1);
+            stats.setSkyblockTamingLevel(1);
+        }
+    }
+    
+    /**
+     * Helper method to set profile data from a profile object
+     */
+    private void setProfileData(PlayerStats stats, JsonObject profile) {
+        // Get profile name
+        if (profile.has("cute_name")) {
+            stats.setSkyblockProfile(profile.get("cute_name").getAsString());
+        } else if (profile.has("profile_name")) {
+            stats.setSkyblockProfile(profile.get("profile_name").getAsString());  
+        }
+        
+        // Get basic economy stats
+        if (profile.has("banking") && !profile.get("banking").isJsonNull()) {
+            JsonObject banking = profile.getAsJsonObject("banking");
+            if (banking.has("balance")) {
+                stats.setSkyblockBank((int) banking.get("balance").getAsDouble());
+            }
+        }
+        
+        if (profile.has("coin_purse")) {
+            stats.setSkyblockPurse((int) profile.get("coin_purse").getAsDouble());
+        }
+        
+        // Total coins estimation
+        stats.setSkyblockCoins(stats.getSkyblockBank() + stats.getSkyblockPurse());
+        
+        // We would need separate API calls for skill levels
+        // For now, setting default values
+        stats.setSkyblockFarmingLevel(1);
+        stats.setSkyblockMiningLevel(1);
+        stats.setSkyblockCombatLevel(1);
+        stats.setSkyblockForagingLevel(1);
+        stats.setSkyblockFishingLevel(1);
+        stats.setSkyblockEnchantingLevel(1);
+        stats.setSkyblockAlchemyLevel(1);
+        stats.setSkyblockTamingLevel(1);
     }
     
     /**
