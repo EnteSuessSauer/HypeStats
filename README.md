@@ -11,23 +11,31 @@ HypeStats is a companion application for Minecraft Bedwars players that provides
 
 ### Requirements
 
-- Java 17 or higher
+- Java 17 or higher (OpenJDK or Oracle JDK)
 - One of the following:
-  - Maven (for auto-compilation and running)
-  - JavaFX SDK (or let HypeStats download it for you)
+  - Maven 3.6.0 or higher (for auto-compilation and running)
+  - JavaFX SDK 17+ (or let HypeStats download it for you)
+
+### Installation
+
+1. Download or clone the repository
+2. Ensure Java 17+ is installed and available in your PATH
+   - Verify with `java -version` in your terminal/command prompt
+3. Optionally install Maven (required for development)
+   - Windows: Download from [Maven's website](https://maven.apache.org/download.cgi) and add to PATH
+   - Mac: `brew install maven`
+   - Linux: Use your distribution's package manager (e.g., `apt install maven`)
 
 ### Quick Start
 
 #### Windows
-1. Download or clone the repository
-2. Run `HypeStats.bat`
-3. The launcher will automatically detect and use the best available method to run the application
+1. Double-click `HypeStats.bat`
+2. The launcher will automatically detect Maven (even if not in PATH), check dependencies, and run the application
 
 #### Mac/Linux
-1. Download or clone the repository
-2. Make the launcher executable: `chmod +x run.sh`
-3. Run `./run.sh`
-4. The launcher will automatically detect and use the best available method to run the application
+1. Make the launcher executable: `chmod +x run.sh`
+2. Run `./run.sh`
+3. The launcher will automatically detect and use the best available method to run the application
 
 ### Test Mode
 
@@ -43,14 +51,19 @@ If you see an error about missing JavaFX runtime components, HypeStats will offe
 
 1. Download and install JavaFX SDK from [openjfx.io](https://openjfx.io/)
 2. Set the JAVAFX_HOME environment variable to the JavaFX SDK location
+   - Windows: `set JAVAFX_HOME=C:\path\to\javafx-sdk`
+   - Mac/Linux: `export JAVAFX_HOME=/path/to/javafx-sdk`
 3. Run the launcher again
 
 #### Maven Issues
 
 If Maven fails to build the project:
 1. Make sure you have Java 17 or higher installed
+   - Windows: Check your Java version with `java -version` 
+   - Make sure JAVA_HOME is correctly set: `echo %JAVA_HOME%`
 2. Check your internet connection for downloading dependencies
 3. If you're behind a proxy, configure Maven's settings.xml
+4. On Windows, the launcher will automatically search for Maven in common installation directories
 
 ### Development
 
@@ -66,7 +79,15 @@ mvn clean javafx:run -Djavafx.args="--test"
 
 ### License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
+
+This means:
+- You are free to use, modify, and distribute this software
+- You can use the software for commercial purposes
+- You can modify and create derivative works
+- The only requirement is to include the original copyright notice and license text
+
+The full license text is available in the LICENSE file included with this project.
 
 ## Project Structure
 
@@ -95,4 +116,4 @@ This application respects the Hypixel API rate limits of 120 requests per minute
 
 ## Disclaimer
 
-This project is not affiliated with or endorsed by Hypixel or Mojang. Use at your own risk and in accordance with the Hypixel Terms of Service. 
+This project is not affiliated with or endorsed by Hypixel or Mojang. Use at your own risk and in accordance with the Hypixel and Mojang Terms of Service. 
