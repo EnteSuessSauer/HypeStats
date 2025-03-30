@@ -2,18 +2,23 @@ package com.hypestats.util;
 
 import com.hypestats.HypeStatsApp;
 import com.hypestats.model.MinecraftLog;
+import com.hypestats.model.LobbyTracker;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Random;
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * Watches a Minecraft log file for player joins and other events
@@ -24,6 +29,9 @@ public class MinecraftLogWatcher {
     private static final Pattern PLAYER_JOIN_PATTERN = Pattern.compile("ONLINE: (.+)");
     private static final Pattern LOBBY_JOIN_PATTERN = Pattern.compile(".*has joined \\((?:.|\\d)+/\\d+\\)!$");
     
+    // Polling interval in milliseconds
+    private static final long POLLING_INTERVAL = 3000; // 3 seconds
+    
     private final String logFilePath;
     private WatchService watchService;
     private Thread watcherThread;
@@ -32,6 +40,9 @@ public class MinecraftLogWatcher {
     private final List<Consumer<String>> playerListeners = new ArrayList<>();
     private final List<Consumer<MinecraftLog>> logListeners = new ArrayList<>();
     private final Random random = new Random();
+    
+    // New addition: LobbyTracker integration
+    private final LobbyTracker lobbyTracker = new LobbyTracker();
     
     // Mock data for test mode
     private static final String[] TEST_USERNAMES = {
@@ -106,6 +117,38 @@ public class MinecraftLogWatcher {
                 log.error("Error logging in test mode", e);
             }
         }
+    }
+    
+    /**
+     * Add a lobby event listener
+     * @param listener LobbyTracker.LobbyEventListener
+     */
+    public void addLobbyListener(com.hypestats.model.events.LobbyEventListener listener) {
+        lobbyTracker.addListener(listener);
+        
+        if (HypeStatsApp.isTestMode()) {
+            try {
+                DevLogger.log("LogWatcher: Lobby event listener added");
+            } catch (Exception e) {
+                log.error("Error logging in test mode", e);
+            }
+        }
+    }
+    
+    /**
+     * Remove a lobby event listener
+     * @param listener LobbyTracker.LobbyEventListener
+     */
+    public void removeLobbyListener(com.hypestats.model.events.LobbyEventListener listener) {
+        lobbyTracker.removeListener(listener);
+    }
+    
+    /**
+     * Get the lobby tracker instance
+     * @return LobbyTracker
+     */
+    public LobbyTracker getLobbyTracker() {
+        return lobbyTracker;
     }
     
     /**
@@ -234,7 +277,10 @@ public class MinecraftLogWatcher {
             }
         }
         
-        // Check for players in the message
+        // Process the log line through the lobby tracker
+        lobbyTracker.processLogLine("[Client thread/INFO]: " + message);
+        
+        // Check for players in the message (legacy support)
         if (message.startsWith("ONLINE:")) {
             String playerList = message.substring(8).trim();
             String[] players = playerList.split(", ");
@@ -318,54 +364,80 @@ public class MinecraftLogWatcher {
     }
     
     /**
-     * Monitor the log file for changes
+     * Read new lines from the log file
+     * @param logPath Path to the log file
+     * @param lastPos Last position read from the file
+     * @return List of new lines
+     * @throws IOException If an error occurs reading the file
      */
-    private void monitorLogFile() {
-        Path logPath = Paths.get(logFilePath);
-        String fileName = logPath.getFileName().toString();
-        long lastPos = 0;
+    private List<String> readNewLines(Path logPath, long lastPos) throws IOException {
+        List<String> newLines = new ArrayList<>();
         
-        try {
-            // Initial read to catch existing content
-            lastPos = processLogFile(logPath, lastPos);
+        try (RandomAccessFile raf = new RandomAccessFile(logPath.toFile(), "r")) {
+            // If lastPos is 0, read from the beginning
+            // Otherwise, seek to the last position
+            if (lastPos > 0 && lastPos < raf.length()) {
+                raf.seek(lastPos);
+            }
             
-            // Watch for changes
-            while (running.get()) {
-                WatchKey key = watchService.take();
-                
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-                    
-                    // Skip overflow events
-                    if (kind == StandardWatchEventKinds.OVERFLOW) {
-                        continue;
-                    }
-                    
-                    // Check if this is our log file
-                    @SuppressWarnings("unchecked")
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path changedPath = ev.context();
-                    
-                    if (changedPath.getFileName().toString().equals(fileName)) {
-                        lastPos = processLogFile(logPath, lastPos);
-                    }
-                }
-                
-                // Reset the key - required to continue receiving events
-                boolean valid = key.reset();
-                if (!valid) {
-                    break;
-                }
+            // Read new lines
+            String line;
+            while ((line = raf.readLine()) != null) {
+                // RandomAccessFile.readLine() returns bytes in platform's default encoding
+                // Convert to String with proper encoding
+                line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+                newLines.add(line);
             }
-        } catch (InterruptedException e) {
-            // Thread was interrupted, exit gracefully
-            Thread.currentThread().interrupt();
         } catch (IOException e) {
-            log.error("Error monitoring log file", e);
-            if (HypeStatsApp.isTestMode()) {
-                DevLogger.log("LogWatcher: Error monitoring log file", e);
-            }
+            log.error("Error reading log file: {}", e.getMessage());
+            // Fall back to the old method if RandomAccessFile fails
+            return fallbackReadNewLines(logPath, lastPos);
         }
+        
+        // If we didn't get any new lines but the file size has changed,
+        // it might be due to buffering or text encoding issues
+        // Try falling back to reading the entire file
+        if (newLines.isEmpty() && Files.size(logPath) > lastPos) {
+            log.debug("No new lines detected but file size changed, using fallback method");
+            return fallbackReadNewLines(logPath, lastPos);
+        }
+        
+        return newLines;
+    }
+    
+    /**
+     * Fallback method to read new lines from the log file
+     * This is used when RandomAccessFile approach fails
+     * @param logPath Path to the log file
+     * @param lastPos Last position read from the file
+     * @return List of new lines
+     * @throws IOException If an error occurs reading the file
+     */
+    private List<String> fallbackReadNewLines(Path logPath, long lastPos) throws IOException {
+        List<String> allLines = Files.readAllLines(logPath);
+        
+        // If lastPos is 0, read all lines
+        if (lastPos == 0) {
+            return allLines;
+        }
+        
+        // If lastPos > 0, we need to try and estimate which lines are new
+        // Compare file size to lastPos to determine approximate percentage of new content
+        long fileSize = Files.size(logPath);
+        if (fileSize <= lastPos) {
+            // File hasn't grown or has been truncated
+            return Collections.emptyList();
+        }
+        
+        double newContentRatio = 1.0 - ((double) lastPos / fileSize);
+        int estimatedNewLines = (int) Math.ceil(allLines.size() * newContentRatio);
+        
+        // Ensure we read at least a minimum number of lines and not more than the file has
+        estimatedNewLines = Math.max(20, estimatedNewLines);
+        estimatedNewLines = Math.min(allLines.size(), estimatedNewLines);
+        
+        int startIndex = Math.max(0, allLines.size() - estimatedNewLines);
+        return allLines.subList(startIndex, allLines.size());
     }
     
     /**
@@ -394,77 +466,56 @@ public class MinecraftLogWatcher {
     }
     
     /**
-     * Read new lines from the log file
-     * @param logPath Path to the log file
-     * @param lastPos Last position read from the file
-     * @return List of new lines
-     * @throws IOException If an error occurs reading the file
-     */
-    private List<String> readNewLines(Path logPath, long lastPos) throws IOException {
-        List<String> allLines = Files.readAllLines(logPath);
-        
-        // Approximation: if lastPos is 0, read all lines
-        // Otherwise, read the last few lines assuming they're new
-        if (lastPos == 0) {
-            return allLines;
-        } else {
-            // This is an approximation since we don't have the exact line numbers
-            int approximateNewLines = 20; // Read last 20 lines as an estimate
-            int startIndex = Math.max(0, allLines.size() - approximateNewLines);
-            return allLines.subList(startIndex, allLines.size());
-        }
-    }
-    
-    /**
      * Process a single log line
      * @param line Log line to process
      */
     private void processLogLine(String line) {
-        Matcher logMatcher = LOG_PATTERN.matcher(line);
-        
-        if (logMatcher.matches()) {
-            String timeStr = logMatcher.group(1);
-            String message = logMatcher.group(2);
-            
-            // Parse timestamp
-            LocalDateTime timestamp = LocalDateTime.now().withHour(Integer.parseInt(timeStr.substring(0, 2)))
-                    .withMinute(Integer.parseInt(timeStr.substring(3, 5)))
-                    .withSecond(Integer.parseInt(timeStr.substring(6, 8)));
+        Matcher matcher = LOG_PATTERN.matcher(line);
+        if (matcher.find()) {
+            String timestamp = matcher.group(1);
+            String message = matcher.group(2);
             
             // Create log entry
-            MinecraftLog logEntry = new MinecraftLog(timestamp, message, MinecraftLog.LogType.INFO);
+            MinecraftLog logEntry = new MinecraftLog(
+                    LocalDateTime.now(),
+                    message,
+                    message.contains("ERROR") ? MinecraftLog.LogType.ERROR : MinecraftLog.LogType.INFO
+            );
+            
+            // Process through lobby tracker
+            lobbyTracker.processLogLine(line);
             
             // Notify log listeners
             for (Consumer<MinecraftLog> listener : logListeners) {
-                listener.accept(logEntry);
+                try {
+                    listener.accept(logEntry);
+                } catch (Exception e) {
+                    log.error("Error in log listener", e);
+                }
             }
             
-            // Check for player joins
+            // Legacy support for existing player detection
             checkForPlayerJoin(message);
         }
     }
     
     /**
-     * Check for player joins in the log message
-     * @param message Log message to check
+     * Check for player join in a message
      */
     private void checkForPlayerJoin(String message) {
-        // Check for ONLINE: pattern (used in some server plugins)
-        Matcher onlineMatcher = PLAYER_JOIN_PATTERN.matcher(message);
-        if (onlineMatcher.matches()) {
-            String playerList = onlineMatcher.group(1);
+        // ONLINE: player1, player2, player3
+        Matcher matcher = PLAYER_JOIN_PATTERN.matcher(message);
+        if (matcher.find()) {
+            String playerList = matcher.group(1);
             String[] players = playerList.split(", ");
-            
             for (String player : players) {
-                notifyPlayerListeners(player);
+                notifyPlayerListeners(player.trim());
             }
             return;
         }
         
-        // Check for lobby join pattern
-        Matcher lobbyMatcher = LOBBY_JOIN_PATTERN.matcher(message);
-        if (lobbyMatcher.matches()) {
-            // Extract player name from "PlayerName has joined (x/y)!"
+        // player has joined (5/12)!
+        if (LOBBY_JOIN_PATTERN.matcher(message).matches()) {
             String playerName = message.split(" has joined")[0];
             notifyPlayerListeners(playerName);
         }
@@ -486,6 +537,127 @@ public class MinecraftLogWatcher {
                 if (HypeStatsApp.isTestMode()) {
                     DevLogger.log("LogWatcher: Error in player listener for: " + playerName, e);
                 }
+            }
+        }
+    }
+    
+    /**
+     * Manually force a refresh of the log file
+     * This can be called externally to force reading the file
+     * @return True if successful, false otherwise
+     */
+    public boolean forceRefresh() {
+        if (!running.get()) {
+            return false;
+        }
+        
+        try {
+            Path logPath = Paths.get(logFilePath);
+            if (!Files.exists(logPath)) {
+                log.warn("Log file does not exist: {}", logFilePath);
+                return false;
+            }
+            
+            // Force read with direct I/O to bypass OS caching where possible
+            try (FileChannel channel = FileChannel.open(logPath, READ, SYNC)) {
+                // Just opening with SYNC can help flush OS buffers
+                channel.force(true);
+            } catch (Exception e) {
+                log.debug("Could not open file with SYNC option, falling back to standard method: {}", e.getMessage());
+                // Fallback to standard RandomAccessFile if FileChannel fails
+                try (RandomAccessFile raf = new RandomAccessFile(logPath.toFile(), "r")) {
+                    // Just opening and closing the file can help flush buffers
+                }
+            }
+            
+            // Update modification time to force refresh in file system
+            logPath.toFile().setLastModified(System.currentTimeMillis());
+            
+            // Use non-cached file reading
+            List<String> lines = new ArrayList<>();
+            try (RandomAccessFile raf = new RandomAccessFile(logPath.toFile(), "r")) {
+                String line;
+                while ((line = raf.readLine()) != null) {
+                    // Convert line to proper encoding
+                    line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+                    lines.add(line);
+                }
+            }
+            
+            // Process each line
+            for (String line : lines) {
+                processLogLine(line);
+            }
+            
+            return true;
+        } catch (IOException e) {
+            log.error("Error forcing log file refresh", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Monitor the log file for changes
+     */
+    private void monitorLogFile() {
+        Path logPath = Paths.get(logFilePath);
+        String fileName = logPath.getFileName().toString();
+        long lastPos = 0;
+        long lastPollTime = System.currentTimeMillis();
+        
+        try {
+            // Initial read to catch existing content
+            lastPos = processLogFile(logPath, lastPos);
+            
+            // Watch for changes
+            while (running.get()) {
+                // Wait for events with a timeout to enable polling
+                WatchKey key = watchService.poll(POLLING_INTERVAL, java.util.concurrent.TimeUnit.MILLISECONDS);
+                
+                // Check if we need to poll based on time elapsed
+                long currentTime = System.currentTimeMillis();
+                boolean shouldPoll = (currentTime - lastPollTime) >= POLLING_INTERVAL;
+                
+                if (key != null) {
+                    // Process events from the watch service
+                    for (WatchEvent<?> event : key.pollEvents()) {
+                        WatchEvent.Kind<?> kind = event.kind();
+                        
+                        // Skip overflow events
+                        if (kind == StandardWatchEventKinds.OVERFLOW) {
+                            continue;
+                        }
+                        
+                        // Check if this is our log file
+                        @SuppressWarnings("unchecked")
+                        WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                        Path changedPath = ev.context();
+                        
+                        if (changedPath.getFileName().toString().equals(fileName)) {
+                            lastPos = processLogFile(logPath, lastPos);
+                            lastPollTime = currentTime; // Reset poll timer when we process an event
+                        }
+                    }
+                    
+                    // Reset the key - required to continue receiving events
+                    boolean valid = key.reset();
+                    if (!valid) {
+                        break;
+                    }
+                } else if (shouldPoll) {
+                    // No events but polling interval has elapsed
+                    log.debug("Polling log file for changes");
+                    lastPos = processLogFile(logPath, lastPos);
+                    lastPollTime = currentTime;
+                }
+            }
+        } catch (InterruptedException e) {
+            // Thread was interrupted, exit gracefully
+            Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            log.error("Error monitoring log file", e);
+            if (HypeStatsApp.isTestMode()) {
+                DevLogger.log("LogWatcher: Error monitoring log file", e);
             }
         }
     }
