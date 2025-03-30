@@ -59,7 +59,9 @@ public class LobbyTracker {
         Matcher bedDestructionMatcher = LobbyPatterns.BedWars.BED_DESTRUCTION.matcher(logLine);
         if (bedDestructionMatcher.find()) {
             String teamColor = bedDestructionMatcher.group(1);
-            int bedNumber = Integer.parseInt(bedDestructionMatcher.group(2));
+            String bedNumberStr = bedDestructionMatcher.group(2);
+            // Parse the number by removing commas
+            int bedNumber = Integer.parseInt(bedNumberStr.replace(",", ""));
             String destroyer = bedDestructionMatcher.group(3);
             
             log.info("Bed destroyed: {} team's bed (#{}) by {}", teamColor, bedNumber, destroyer);
@@ -101,7 +103,9 @@ public class LobbyTracker {
         if (finalKillCounterMatcher.find()) {
             String victim = finalKillCounterMatcher.group(1);
             String killer = finalKillCounterMatcher.group(2);
-            int finalKillCount = Integer.parseInt(finalKillCounterMatcher.group(3));
+            String finalKillCountStr = finalKillCounterMatcher.group(3);
+            // Parse the number by removing commas
+            int finalKillCount = Integer.parseInt(finalKillCountStr.replace(",", ""));
             
             log.info("Final kill: {} was killed by {} (#{} final kill)", victim, killer, finalKillCount);
             

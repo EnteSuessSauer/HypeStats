@@ -61,10 +61,10 @@ public record LobbyPatterns() {
      * Patterns for Bed Wars specific events
      */
     public static final class BedWars {
-        public static final Pattern BED_DESTRUCTION = Pattern.compile("\\[CHAT\\] BED DESTRUCTION > (.+?) Bed was bed #(\\d+) destroyed by (.+?)!");
+        public static final Pattern BED_DESTRUCTION = Pattern.compile("\\[CHAT\\] BED DESTRUCTION > (.+?) Bed was bed #([\\d,]+) destroyed by (.+?)!");
         public static final Pattern BED_DESTROYED_SPECTATOR = Pattern.compile("\\[CHAT\\] Your bed was destroyed so you are a spectator!");
         public static final Pattern FINAL_KILL = Pattern.compile("\\[CHAT\\] (.+?) was .+ by .+?\\. FINAL KILL!");
-        public static final Pattern FINAL_KILL_COUNTER = Pattern.compile("\\[CHAT\\] (.+?) was (.+?)'s final #(\\d+)\\. FINAL KILL!");
+        public static final Pattern FINAL_KILL_COUNTER = Pattern.compile("\\[CHAT\\] (.+?) was (.+?)'s final #([\\d,]+)\\. FINAL KILL!");
         public static final Pattern TEAM_ELIMINATED = Pattern.compile("\\[CHAT\\] TEAM ELIMINATED > (.+?) Team has been eliminated!");
         public static final Pattern PLAYER_RESPAWN_COUNTDOWN = Pattern.compile("\\[CHAT\\] You will respawn in (\\d+) seconds?!");
         public static final Pattern PLAYER_RESPAWNED = Pattern.compile("\\[CHAT\\] You have respawned!");
