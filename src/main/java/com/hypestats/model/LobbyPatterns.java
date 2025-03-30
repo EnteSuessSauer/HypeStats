@@ -38,7 +38,7 @@ public record LobbyPatterns() {
     public static final class GameState {
         public static final Pattern GAME_START_COUNTDOWN = Pattern.compile("\\[CHAT\\] The game starts in (\\d+) seconds?!");
         public static final Pattern GAME_START_FINAL = Pattern.compile("\\[CHAT\\] The game starts in 1 second!");
-        public static final Pattern GAME_STARTED = Pattern.compile("\\[CHAT\\] The game has started!");
+        public static final Pattern GAME_STARTED = Pattern.compile("\\[CHAT\\] The game has started!|\\[CHAT\\] Game Start");
         public static final Pattern GAME_MODE = Pattern.compile("\\[CHAT\\] You are playing on (\\w+)");
         public static final Pattern TEAM_ASSIGNMENT = Pattern.compile("\\[CHAT\\] You have joined (\\w+) Team!");
         public static final Pattern VICTORY = Pattern.compile("\\[CHAT\\] VICTORY!");
@@ -82,4 +82,9 @@ public record LobbyPatterns() {
         public static final Pattern RESOURCE_GAIN = Pattern.compile("\\[CHAT\\] \\+(\\d+) (Iron|Gold|Diamond|Emerald)");
         public static final Pattern TICKET_GAIN = Pattern.compile("\\[CHAT\\] \\+(\\d+) (.+?) Tickets! \\((.+?)\\)");
     }
+
+    /**
+     * Pattern for detecting game end
+     */
+    public static final Pattern GAME_ENDED = Pattern.compile("\\[CHAT\\] .+ has won the game!|\\[CHAT\\] Game End|\\[CHAT\\] Time Played: (.+)");
 } 
