@@ -35,101 +35,8 @@ public class PlayerStats {
     private String mostRecentGameType;
     private String recentlyPlayedGame;
     
-    // Bedwars stats
-    private double bedwarsLevel;
-    private int bedwarsWins;
-    private int bedwarsLosses;
-    private double bedwarsWLRatio;
-    private int bedwarsKills;
-    private int bedwarsDeaths;
-    private double bedwarsKDRatio;
-    private int bedwarsFinalKills;
-    private int bedwarsFinalDeaths;
-    private double bedwarsFinalKDRatio;
-    private Integer bedwarsWinstreak; // May be null if hidden
-    private int bedwarsBedsBroken;
-    private int bedwarsBedsLost;
-    private int bedwarsGamesPlayed;
-    
-    // Skywars stats
-    private double skywarsLevel;
-    private int skywarsWins;
-    private int skywarsLosses;
-    private double skywarsWLRatio;
-    private int skywarsKills;
-    private int skywarsDeaths;
-    private double skywarsKDRatio;
-    private int skywarsCoins;
-    private int skywarsGamesPlayed;
-    
-    // Duels stats
-    private int duelsWins;
-    private int duelsLosses;
-    private double duelsWLRatio;
-    private int duelsKills;
-    private int duelsDeaths;
-    private double duelsKDRatio;
-    private int duelsCoins;
-    private int duelsGamesPlayed;
-    
-    // Murder Mystery stats
-    private int mmWins;
-    private int mmGamesPlayed;
-    private int mmKills;
-    private int mmDeaths;
-    private double mmKDRatio;
-    private int mmCoins;
-    
-    // Arcade stats
-    private int arcadeWins;
-    private int arcadeCoins;
-    
-    // SkyBlock stats
-    private int skyblockCoins;
-    private int skyblockPurse;
-    private int skyblockBank;
-    private int skyblockFarmingLevel;
-    private int skyblockMiningLevel;
-    private int skyblockCombatLevel;
-    private int skyblockForagingLevel;
-    private int skyblockFishingLevel;
-    private int skyblockEnchantingLevel;
-    private int skyblockAlchemyLevel;
-    private int skyblockTamingLevel;
-    private String skyblockProfile;
-    
-    // TNT Games stats
-    private int tntgamesWins;
-    private int tntgamesCoins;
-    private int tntRunWins;
-    private int tntRunRecord;
-    private int bowSpleefWins;
-    private int wizardsWins;
-    private int pvpRunWins;
-    
-    // UHC stats
-    private int uhcWins;
-    private int uhcKills;
-    private int uhcDeaths;
-    private double uhcKDRatio;
-    private int uhcCoins;
-    private int uhcScore;
-    
-    // Build Battle stats
-    private int buildBattleWins;
-    private int buildBattleGamesPlayed;
-    private int buildBattleScore;
-    private int buildBattleCoins;
-    
-    // Mega Walls stats
-    private int megaWallsWins;
-    private int megaWallsKills;
-    private int megaWallsDeaths;
-    private double megaWallsKDRatio;
-    private int megaWallsAssists;
-    private int megaWallsFinalKills;
-    private int megaWallsFinalDeaths;
-    private double megaWallsFinalKDRatio;
+    // Game-specific statistics
+    private Map<String, GameStats> gameStats = new HashMap<>();
     
     // List of highlighted stats for this player
     private List<HighlightedStat> topStats = new ArrayList<>();
@@ -189,6 +96,101 @@ public class PlayerStats {
     }
     
     /**
+     * Add game-specific stats to the player
+     * @param gameType Game type identifier
+     * @param stats GameStats object
+     */
+    public void addGameStats(String gameType, GameStats stats) {
+        stats.setGameType(gameType);
+        gameStats.put(gameType, stats);
+    }
+    
+    /**
+     * Get game-specific stats
+     * @param gameType Game type identifier
+     * @return GameStats object or null if not found
+     */
+    public GameStats getGameStats(String gameType) {
+        return gameStats.get(gameType);
+    }
+    
+    /**
+     * Get Bedwars stats
+     * @return BedwarsStats or null if not found
+     */
+    public BedwarsStats getBedwarsStats() {
+        GameStats stats = getGameStats("BEDWARS");
+        return stats instanceof BedwarsStats ? (BedwarsStats) stats : null;
+    }
+    
+    /**
+     * Get Skywars stats
+     * @return GameStats or null if not found
+     */
+    public GameStats getSkywarsStats() {
+        return getGameStats("SKYWARS");
+    }
+    
+    /**
+     * Get Duels stats
+     * @return GameStats or null if not found
+     */
+    public GameStats getDuelsStats() {
+        return getGameStats("DUELS");
+    }
+    
+    /**
+     * Get Murder Mystery stats
+     * @return GameStats or null if not found
+     */
+    public GameStats getMurderMysteryStats() {
+        return getGameStats("MURDER_MYSTERY");
+    }
+    
+    /**
+     * Get TNT Games stats
+     * @return TNTGamesStats or null if not found
+     */
+    public TNTGamesStats getTNTGamesStats() {
+        GameStats stats = getGameStats("TNTGAMES");
+        return stats instanceof TNTGamesStats ? (TNTGamesStats) stats : null;
+    }
+    
+    /**
+     * Get UHC stats
+     * @return GameStats or null if not found
+     */
+    public GameStats getUHCStats() {
+        return getGameStats("UHC");
+    }
+    
+    /**
+     * Get Build Battle stats
+     * @return GameStats or null if not found
+     */
+    public GameStats getBuildBattleStats() {
+        return getGameStats("BUILD_BATTLE");
+    }
+    
+    /**
+     * Get Mega Walls stats
+     * @return MegaWallsStats or null if not found
+     */
+    public MegaWallsStats getMegaWallsStats() {
+        GameStats stats = getGameStats("MEGA_WALLS");
+        return stats instanceof MegaWallsStats ? (MegaWallsStats) stats : null;
+    }
+    
+    /**
+     * Get SkyBlock stats
+     * @return SkyBlockStats or null if not found
+     */
+    public SkyBlockStats getSkyBlockStats() {
+        GameStats stats = getGameStats("SKYBLOCK");
+        return stats instanceof SkyBlockStats ? (SkyBlockStats) stats : null;
+    }
+    
+    /**
      * Calculate the top stats for this player and populate the topStats list
      */
     public void calculateTopStats() {
@@ -202,37 +204,54 @@ public class PlayerStats {
             addStatIfSignificant("Account Age", days, "accountAge", "%d days");
         }
         
-        // PvP stats (high priority)
-        // Bedwars stats
-        addStatIfSignificant("Bedwars Final K/D", bedwarsFinalKDRatio, "bedwarsFinalKDRatio", "%.2f");
-        addStatIfSignificant("Bedwars K/D", bedwarsKDRatio, "bedwarsKDRatio", "%.2f");
-        addStatIfSignificant("Bedwars W/L", bedwarsWLRatio, "bedwarsWLRatio", "%.2f");
-        addStatIfSignificant("Bedwars Level", bedwarsLevel, "bedwarsLevel", "%.0f✫");
-        
-        // Skywars stats
-        addStatIfSignificant("Skywars K/D", skywarsKDRatio, "skywarsKDRatio", "%.2f");
-        addStatIfSignificant("Skywars W/L", skywarsWLRatio, "skywarsWLRatio", "%.2f");
-        addStatIfSignificant("Skywars Level", skywarsLevel, "skywarsLevel", "%.0f");
-        
-        // Duels stats
-        addStatIfSignificant("Duels K/D", duelsKDRatio, "duelsKDRatio", "%.2f");
-        addStatIfSignificant("Duels W/L", duelsWLRatio, "duelsWLRatio", "%.2f");
-        
-        // Murder Mystery stats
-        addStatIfSignificant("Murder Mystery K/D", mmKDRatio, "mmKDRatio", "%.2f");
-        
-        // UHC stats
-        addStatIfSignificant("UHC K/D", uhcKDRatio, "uhcKDRatio", "%.2f");
-        
-        // Mega Walls stats
-        addStatIfSignificant("Mega Walls K/D", megaWallsKDRatio, "megaWallsKDRatio", "%.2f");
-        addStatIfSignificant("Mega Walls Final K/D", megaWallsFinalKDRatio, "megaWallsFinalKDRatio", "%.2f");
-        
-        // TNT Games stats
-        addStatIfSignificant("TNT Run Record", tntRunRecord, "tntRunRecord", "%d seconds");
-        
-        // Build Battle stats
-        addStatIfSignificant("Build Battle Score", buildBattleScore, "buildBattleScore", null);
+        // Add stats from each game mode
+        for (Map.Entry<String, GameStats> entry : gameStats.entrySet()) {
+            String gameType = entry.getKey();
+            GameStats stats = entry.getValue();
+            
+            // Skip if no meaningful stats
+            if (!stats.hasStats()) continue;
+            
+            // Add common stats
+            if (stats.getLevel() > 0) {
+                String gamePrefix = getGamePrefix(gameType);
+                addStatIfSignificant(gamePrefix + " Level", stats.getLevel(), gameType.toLowerCase() + "Level", "%.0f");
+            }
+            
+            if (stats.getWlRatio() > 0) {
+                String gamePrefix = getGamePrefix(gameType);
+                addStatIfSignificant(gamePrefix + " W/L", stats.getWlRatio(), gameType.toLowerCase() + "WLRatio", "%.2f");
+            }
+            
+            if (stats.getKdRatio() > 0) {
+                String gamePrefix = getGamePrefix(gameType);
+                addStatIfSignificant(gamePrefix + " K/D", stats.getKdRatio(), gameType.toLowerCase() + "KDRatio", "%.2f");
+            }
+            
+            // Game-specific special stats
+            if (stats instanceof BedwarsStats) {
+                BedwarsStats bedwarsStats = (BedwarsStats) stats;
+                if (bedwarsStats.getFinalKDRatio() > 0) {
+                    addStatIfSignificant("Bedwars Final K/D", bedwarsStats.getFinalKDRatio(), "bedwarsFinalKDRatio", "%.2f");
+                }
+            } else if (stats instanceof MegaWallsStats) {
+                MegaWallsStats megaWallsStats = (MegaWallsStats) stats;
+                if (megaWallsStats.getFinalKDRatio() > 0) {
+                    addStatIfSignificant("Mega Walls Final K/D", megaWallsStats.getFinalKDRatio(), "megaWallsFinalKDRatio", "%.2f");
+                }
+            } else if (stats instanceof TNTGamesStats) {
+                TNTGamesStats tntStats = (TNTGamesStats) stats;
+                if (tntStats.getTntRunRecord() > 0) {
+                    addStatIfSignificant("TNT Run Record", tntStats.getTntRunRecord(), "tntRunRecord", "%d seconds");
+                }
+            }
+            
+            // Add score if applicable
+            if (stats.getScore() > 0) {
+                String gamePrefix = getGamePrefix(gameType);
+                addStatIfSignificant(gamePrefix + " Score", stats.getScore(), gameType.toLowerCase() + "Score", null);
+            }
+        }
         
         // Network stats (lower priority)
         addStatIfSignificant("Network Level", networkLevel, "networkLevel", null);
@@ -243,6 +262,24 @@ public class PlayerStats {
         topStats.sort(Comparator.comparing(HighlightedStat::getSignificance).reversed());
         while (topStats.size() > 3) {
             topStats.remove(topStats.size() - 1);
+        }
+    }
+    
+    /**
+     * Get formatted game prefix for display
+     */
+    private String getGamePrefix(String gameType) {
+        switch (gameType) {
+            case "BEDWARS": return "Bedwars";
+            case "SKYWARS": return "Skywars";
+            case "DUELS": return "Duels";
+            case "MURDER_MYSTERY": return "Murder Mystery";
+            case "TNTGAMES": return "TNT Games";
+            case "UHC": return "UHC";
+            case "BUILD_BATTLE": return "Build Battle";
+            case "MEGA_WALLS": return "Mega Walls";
+            case "SKYBLOCK": return "SkyBlock";
+            default: return gameType;
         }
     }
     
@@ -270,78 +307,15 @@ public class PlayerStats {
         }
     }
     
-    // Compatibility methods for older code
-    public double getLevel() {
-        return bedwarsLevel;
-    }
-    
-    public int getWins() {
-        return bedwarsWins;
-    }
-    
-    public int getLosses() {
-        return bedwarsLosses;
-    }
-    
-    public double getWlRatio() {
-        return bedwarsWLRatio;
-    }
-    
-    public int getKills() {
-        return bedwarsKills;
-    }
-    
-    public int getDeaths() {
-        return bedwarsDeaths;
-    }
-    
-    public double getKdRatio() {
-        return bedwarsKDRatio;
-    }
-    
-    public int getFinalKills() {
-        return bedwarsFinalKills;
-    }
-    
-    public int getFinalDeaths() {
-        return bedwarsFinalDeaths;
-    }
-    
-    public double getFinalKdRatio() {
-        return bedwarsFinalKDRatio;
-    }
-    
-    public Integer getWinstreak() {
-        return bedwarsWinstreak;
-    }
-    
-    public int getBedsBroken() {
-        return bedwarsBedsBroken;
-    }
-    
-    public int getBedsLost() {
-        return bedwarsBedsLost;
-    }
-    
-    public int getGamesPlayed() {
-        return bedwarsGamesPlayed;
-    }
-    
     // Formatted getters for display
-    public String getFormattedWLRatio() {
-        return String.format("%.2f", bedwarsWLRatio);
-    }
-    
-    public String getFormattedKDRatio() {
-        return String.format("%.2f", bedwarsKDRatio);
-    }
-    
-    public String getFormattedFinalKDRatio() {
-        return String.format("%.2f", bedwarsFinalKDRatio);
-    }
-    
     public String getFormattedLevel() {
         // Return the highest level from all game modes with indicator
+        BedwarsStats bedwarsStats = getBedwarsStats();
+        GameStats skywarsStats = getSkywarsStats();
+        
+        double bedwarsLevel = bedwarsStats != null ? bedwarsStats.getLevel() : 0;
+        double skywarsLevel = skywarsStats != null ? skywarsStats.getLevel() : 0;
+        
         if (bedwarsLevel > 0 && bedwarsLevel >= skywarsLevel) {
             return String.format("%.0f✫ (Bedwars)", bedwarsLevel);
         } else if (skywarsLevel > 0) {
@@ -350,10 +324,6 @@ public class PlayerStats {
             return String.format("%d (Network)", networkLevel);
         }
         return "0";
-    }
-    
-    public String getWinstreakDisplay() {
-        return bedwarsWinstreak != null ? bedwarsWinstreak.toString() : "Hidden";
     }
     
     public String getNetworkLevelFormatted() {
@@ -457,99 +427,6 @@ public class PlayerStats {
             }
             return value % 1 == 0 ? String.format("%.0f", value) : String.format("%.2f", value);
         }
-    }
-    
-    // Getters and setters for new fields
-    public String getGuildName() {
-        return guildName;
-    }
-    
-    public void setGuildName(String guildName) {
-        this.guildName = guildName;
-    }
-    
-    public String getGuildRank() {
-        return guildRank;
-    }
-    
-    public void setGuildRank(String guildRank) {
-        this.guildRank = guildRank;
-    }
-    
-    public String getGuildTag() {
-        return guildTag;
-    }
-    
-    public void setGuildTag(String guildTag) {
-        this.guildTag = guildTag;
-    }
-    
-    public String getGuildColor() {
-        return guildColor;
-    }
-    
-    public void setGuildColor(String guildColor) {
-        this.guildColor = guildColor;
-    }
-    
-    public String getCurrentStatus() {
-        return currentStatus;
-    }
-    
-    public void setCurrentStatus(String currentStatus) {
-        this.currentStatus = currentStatus;
-    }
-    
-    public int getFriendsCount() {
-        return friendsCount;
-    }
-    
-    public void setFriendsCount(int friendsCount) {
-        this.friendsCount = friendsCount;
-    }
-    
-    public int getAchievementCompletionPercent() {
-        return achievementCompletionPercent;
-    }
-    
-    public void setAchievementCompletionPercent(int achievementCompletionPercent) {
-        this.achievementCompletionPercent = achievementCompletionPercent;
-    }
-    
-    public Map<String, String> getSocialLinks() {
-        return socialLinks;
-    }
-    
-    public void setSocialLinks(Map<String, String> socialLinks) {
-        this.socialLinks = socialLinks;
-    }
-    
-    public Map<String, Double> getAdditionalStats() {
-        return additionalStats;
-    }
-    
-    public void setAdditionalStats(Map<String, Double> additionalStats) {
-        this.additionalStats = additionalStats;
-    }
-    
-    public void addAdditionalStat(String key, double value) {
-        this.additionalStats.put(key, value);
-    }
-    
-    public int getPlaytimeSourceCount() {
-        return playtimeSourceCount;
-    }
-    
-    public void setPlaytimeSourceCount(int playtimeSourceCount) {
-        this.playtimeSourceCount = playtimeSourceCount;
-    }
-    
-    public boolean isPlaytimeEstimated() {
-        return playtimeEstimated;
-    }
-    
-    public void setPlaytimeEstimated(boolean playtimeEstimated) {
-        this.playtimeEstimated = playtimeEstimated;
     }
     
     // Helper methods

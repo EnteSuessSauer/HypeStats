@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 
 # Show banner
 echo -e "${GREEN}"
-echo "HypeStats - Hypixel Bedwars Stats Companion"
+echo "HypeStats - Hypixel Stats Companion"
 echo -e "${NC}"
 
 # Check if test mode flag is passed

@@ -1,6 +1,6 @@
-## HypeStats - Hypixel Bedwars Stats Companion
+## HypeStats - Hypixel Stats Companion
 
-HypeStats is a companion application for Minecraft Bedwars players that provides easy access to player statistics, lobby tracking, and game analysis.
+HypeStats is a companion application for Minecraft players that provides easy access to Hypixel statistics, lobby tracking, and game analysis.
 
 ### Features
 

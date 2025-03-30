@@ -25,10 +25,12 @@
             
             <TitledPane text="How to get your API key" expanded="false">
                 <VBox spacing="5">
-                    <Label text="1. Log into the Hypixel Minecraft server (mc.hypixel.net)" wrapText="true"/>
-                    <Label text="2. Type the command: /api new" wrapText="true"/>
-                    <Label text="3. Copy the API key and paste it above" wrapText="true"/>
-                    <Label text="4. Keep your API key private and never share it" wrapText="true" styleClass="status-warning"/>
+                    <Label text="1. Visit the Hypixel Developer Dashboard (developer.hypixel.net)" wrapText="true"/>
+                    <Label text="2. Log in using your Hypixel forums account" wrapText="true"/>
+                    <Label text="3. Click 'Create Development Key' to enable application creation" wrapText="true"/>
+                    <Label text="4. Create a new 'Personal API Key' application and fill out the form" wrapText="true"/>
+                    <Label text="5. Once approved, copy the API key and paste it above" wrapText="true"/>
+                    <Label text="6. Keep your API key private and never share it" wrapText="true" styleClass="status-warning"/>
                 </VBox>
             </TitledPane>
         </VBox>

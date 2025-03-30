@@ -1,5 +1,5 @@
 @echo off
-title HypeStats - Hypixel Bedwars Stats Companion
+title HypeStats - Hypixel Stats Companion
 color 0a
 
 REM Check if test mode flag is passed
@@ -11,7 +11,7 @@ if "%TEST_MODE%"=="true" (
     echo Starting HypeStats in TEST MODE...
     echo This mode simulates API calls and log file reading for testing purposes.
 ) else (
-    echo Starting HypeStats - Hypixel Bedwars Stats Companion...
+    echo Starting HypeStats - Hypixel Stats Companion...
 )
 echo.
 

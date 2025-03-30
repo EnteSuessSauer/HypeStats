@@ -17,6 +17,7 @@ import javafx.scene.control.TabPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
+import javafx.scene.image.Image;
 
 import java.awt.*;
 import java.io.IOException;
@@ -133,10 +134,10 @@ public class MainController {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("About HypeStats");
         alert.setHeaderText("HypeStats");
-        alert.setContentText("A Hypixel Bedwars stats companion app\n\n" +
+        alert.setContentText("A comprehensive Hypixel statistics companion app\n\n" +
                 "Version: 1.0.0\n" +
                 "Created by: Your Name\n\n" +
-                "This application uses the Hypixel API to retrieve player statistics.");
+                "This application uses the Hypixel API to retrieve player statistics across multiple game modes.");
         
         alert.showAndWait();
     }
@@ -185,7 +186,7 @@ public class MainController {
             alert.setHeaderText("Welcome to HypeStats!");
             alert.setContentText("It looks like this is your first time using HypeStats.\n\n" +
                     "To get started, please enter your Hypixel API key in the settings.\n\n" +
-                    "You can get your API key by logging into Hypixel and using the command: /api new");
+                    "You can get your API key by visiting the Hypixel Developer Dashboard at developer.hypixel.net");
             
             alert.showAndWait();
             
@@ -237,5 +238,22 @@ public class MainController {
      */
     public void setHostServices(HostServices hostServices) {
         this.hostServices = hostServices;
+    }
+
+    /**
+     * Set up the primary stage
+     * @param stage JavaFX primary stage
+     */
+    public void setupStage(Stage stage) {
+        // Set window title and icon
+        stage.setTitle("HypeStats - Hypixel Statistics Companion");
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/icon.png")));
+        
+        // Set minimum window size
+        stage.setMinWidth(900);
+        stage.setMinHeight(600);
+        
+        // Automatically save settings on window close
+        stage.setOnCloseRequest(event -> SettingsManager.getInstance().saveSettings());
     }
 } 

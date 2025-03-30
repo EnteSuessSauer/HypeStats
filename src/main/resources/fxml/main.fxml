@@ -1,0 +1,6 @@
+    <HBox styleClass="app-header">
+        <Label styleClass="app-title" text="HypeStats" />
+        <Label styleClass="app-subtitle" text="Hypixel Statistics Companion" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Button fx:id="settingsButton" mnemonicParsing="false" styleClass="settings-button" text="Settings" />
+    </HBox> 

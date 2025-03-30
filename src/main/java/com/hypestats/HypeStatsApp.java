@@ -16,7 +16,7 @@ import java.io.InputStream;
 
 @Slf4j
 public class HypeStatsApp extends Application {
-    private static final String APP_TITLE = "HypeStats - Hypixel Bedwars Companion";
+    private static final String APP_TITLE = "HypeStats - Hypixel Statistics Companion";
     private static final int DEFAULT_WIDTH = 1000;
     private static final int DEFAULT_HEIGHT = 700;
     

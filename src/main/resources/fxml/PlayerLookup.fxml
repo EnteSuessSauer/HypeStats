@@ -81,9 +81,7 @@
                             <Label text="Achievement Points" styleClass="stat-label"/>
                             <HBox spacing="3" alignment="CENTER_LEFT">
                                 <Label fx:id="achievementPointsLabel" styleClass="stat-value" text="0"/>
-                                <Label text="(" styleClass="stat-value-suffix"/>
-                                <Label fx:id="achievementCompletionLabel" styleClass="stat-value-suffix" text="0%"/>
-                                <Label text=")" styleClass="stat-value-suffix"/>
+                                <Label fx:id="achievementCompletionLabel" styleClass="stat-value-suffix" text=""/>
                             </HBox>
                         </VBox>
                         
@@ -310,7 +308,7 @@
                 </TitledPane>
                 
                 <!-- Murder Mystery Stats -->
-                <TitledPane text="Murder Mystery Stats" expanded="false">
+                <TitledPane fx:id="murderMysteryPane" text="Murder Mystery Stats" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -359,7 +357,7 @@
                 </TitledPane>
                 
                 <!-- TNT Games Stats -->
-                <TitledPane text="TNT Games Stats" expanded="false">
+                <TitledPane fx:id="tntGamesPane" text="TNT Games Stats" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -408,7 +406,7 @@
                 </TitledPane>
                 
                 <!-- UHC Stats -->
-                <TitledPane text="UHC Stats" expanded="false">
+                <TitledPane fx:id="uhcPane" text="UHC Stats" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -452,7 +450,7 @@
                 </TitledPane>
                 
                 <!-- Build Battle Stats -->
-                <TitledPane text="Build Battle Stats" expanded="false">
+                <TitledPane fx:id="buildBattlePane" text="Build Battle Stats" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -491,7 +489,7 @@
                 </TitledPane>
                 
                 <!-- Mega Walls Stats -->
-                <TitledPane text="Mega Walls Stats" expanded="false">
+                <TitledPane fx:id="megaWallsPane" text="Mega Walls Stats" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>
@@ -546,7 +544,7 @@
                 </TitledPane>
                 
                 <!-- SkyBlock Stats (Basic) -->
-                <TitledPane text="SkyBlock Stats (Basic)" expanded="false">
+                <TitledPane fx:id="skyblockPane" text="SkyBlock Stats (Basic)" expanded="false" visible="false">
                     <GridPane styleClass="stats-grid" hgap="10" vgap="10">
                         <columnConstraints>
                             <ColumnConstraints percentWidth="25"/>

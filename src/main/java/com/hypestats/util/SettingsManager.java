@@ -69,7 +69,7 @@ public class SettingsManager {
     /**
      * Save settings to the properties file
      */
-    private void saveSettings() {
+    public void saveSettings() {
         try (OutputStream os = new FileOutputStream(settingsFile)) {
             properties.store(os, "HypeStats Settings");
             log.info("Settings saved to {}", settingsFile);

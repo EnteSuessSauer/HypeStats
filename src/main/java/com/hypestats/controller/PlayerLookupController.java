@@ -1,6 +1,11 @@
 package com.hypestats.controller;
 
+import com.hypestats.model.BedwarsStats;
+import com.hypestats.model.GameStats;
+import com.hypestats.model.MegaWallsStats;
 import com.hypestats.model.PlayerStats;
+import com.hypestats.model.SkyBlockStats;
+import com.hypestats.model.TNTGamesStats;
 import com.hypestats.util.HypixelApiService;
 import com.hypestats.util.SettingsManager;
 import javafx.application.Platform;
@@ -302,6 +307,25 @@ public class PlayerLookupController {
     
     @FXML
     private Label skyblockPurseLabel;
+    
+    // Additional game mode container panes
+    @FXML
+    private TitledPane murderMysteryPane;
+    
+    @FXML
+    private TitledPane tntGamesPane;
+    
+    @FXML
+    private TitledPane uhcPane;
+    
+    @FXML
+    private TitledPane buildBattlePane;
+    
+    @FXML
+    private TitledPane megaWallsPane;
+    
+    @FXML
+    private TitledPane skyblockPane;
     
     private SettingsManager settingsManager;
     private HypixelApiService apiService;
@@ -632,8 +656,12 @@ public class PlayerLookupController {
         achievementPointsLabel.setText(String.valueOf(stats.getAchievementPoints()));
         applyStatStyle(achievementPointsLabel, stats.getAchievementPoints(), "achievementPoints");
         
-        // Display achievement completion percentage
-        achievementCompletionLabel.setText(stats.getAchievementCompletionPercent() + "%");
+        // Display achievement count instead of percentage
+        if (stats.getAchievementCompletionPercent() > 0) {
+            achievementCompletionLabel.setText("(" + stats.getAchievementCompletionPercent() + " completed)");
+        } else {
+            achievementCompletionLabel.setText("");
+        }
         
         // Set account age
         accountAgeLabel.setText(stats.getFormattedAccountAge());
@@ -646,186 +674,261 @@ public class PlayerLookupController {
      * Display Bedwars stats
      */
     private void displayBedwarsStats(PlayerStats stats) {
+        BedwarsStats bedwarsStats = stats.getBedwarsStats();
+        
+        // If no Bedwars stats available, don't display anything
+        if (bedwarsStats == null || !bedwarsStats.hasStats()) {
+            return;
+        }
+        
         // Bedwars Stats
-        winsLabel.setText(String.valueOf(stats.getBedwarsWins()));
-        lossesLabel.setText(String.valueOf(stats.getBedwarsLosses()));
+        winsLabel.setText(String.valueOf(bedwarsStats.getWins()));
+        lossesLabel.setText(String.valueOf(bedwarsStats.getLosses()));
         
-        wlRatioLabel.setText(String.format("%.2f", stats.getBedwarsWLRatio()));
-        applyStatStyle(wlRatioLabel, stats.getBedwarsWLRatio(), "bedwarsWLRatio");
+        wlRatioLabel.setText(bedwarsStats.getFormattedWLRatio());
+        applyStatStyle(wlRatioLabel, bedwarsStats.getWlRatio(), "bedwarsWLRatio");
         
-        winstreakLabel.setText(stats.getWinstreakDisplay());
+        winstreakLabel.setText(bedwarsStats.getWinstreakDisplay());
         
-        killsLabel.setText(String.valueOf(stats.getBedwarsKills()));
-        deathsLabel.setText(String.valueOf(stats.getBedwarsDeaths()));
+        killsLabel.setText(String.valueOf(bedwarsStats.getKills()));
+        deathsLabel.setText(String.valueOf(bedwarsStats.getDeaths()));
         
-        kdRatioLabel.setText(String.format("%.2f", stats.getBedwarsKDRatio()));
-        applyStatStyle(kdRatioLabel, stats.getBedwarsKDRatio(), "bedwarsKDRatio");
+        kdRatioLabel.setText(bedwarsStats.getFormattedKDRatio());
+        applyStatStyle(kdRatioLabel, bedwarsStats.getKdRatio(), "bedwarsKDRatio");
         
-        gamesPlayedLabel.setText(String.valueOf(stats.getBedwarsGamesPlayed()));
+        gamesPlayedLabel.setText(String.valueOf(bedwarsStats.getGamesPlayed()));
         
-        finalKillsLabel.setText(String.valueOf(stats.getBedwarsFinalKills()));
-        finalDeathsLabel.setText(String.valueOf(stats.getBedwarsFinalDeaths()));
+        finalKillsLabel.setText(String.valueOf(bedwarsStats.getFinalKills()));
+        finalDeathsLabel.setText(String.valueOf(bedwarsStats.getFinalDeaths()));
         
-        finalKdRatioLabel.setText(String.format("%.2f", stats.getBedwarsFinalKDRatio()));
-        applyStatStyle(finalKdRatioLabel, stats.getBedwarsFinalKDRatio(), "bedwarsFinalKDRatio");
+        finalKdRatioLabel.setText(bedwarsStats.getFormattedFinalKDRatio());
+        applyStatStyle(finalKdRatioLabel, bedwarsStats.getFinalKDRatio(), "bedwarsFinalKDRatio");
         
-        bedsBrokenLabel.setText(String.valueOf(stats.getBedwarsBedsBroken()));
-        bedsLostLabel.setText(String.valueOf(stats.getBedwarsBedsLost()));
-        
-        // Calculate and set bed ratio
-        double bedRatio = stats.getBedwarsBedsLost() > 0 
-            ? (double) stats.getBedwarsBedsBroken() / stats.getBedwarsBedsLost() 
-            : stats.getBedwarsBedsBroken();
-        bedRatioLabel.setText(String.format("%.2f", bedRatio));
+        bedsBrokenLabel.setText(String.valueOf(bedwarsStats.getBedsBroken()));
+        bedsLostLabel.setText(String.valueOf(bedwarsStats.getBedsLost()));
+        bedRatioLabel.setText(bedwarsStats.getFormattedBedRatio());
     }
     
     /**
      * Display Skywars stats
      */
     private void displaySkywarsStats(PlayerStats stats) {
-        if (stats.getSkywarsGamesPlayed() == 0) {
-            return; // No Skywars stats
+        GameStats skywarsStats = stats.getSkywarsStats();
+        
+        // If no Skywars stats available, don't display anything
+        if (skywarsStats == null || !skywarsStats.hasStats()) {
+            return;
         }
         
-        skywarsLevelLabel.setText(String.format("%.0f", stats.getSkywarsLevel()));
-        applyStatStyle(skywarsLevelLabel, stats.getSkywarsLevel(), "skywarsLevel");
+        skywarsLevelLabel.setText(skywarsStats.getFormattedLevel());
+        applyStatStyle(skywarsLevelLabel, skywarsStats.getLevel(), "skywarsLevel");
         
-        skywarsWinsLabel.setText(String.valueOf(stats.getSkywarsWins()));
-        skywarsLossesLabel.setText(String.valueOf(stats.getSkywarsLosses()));
+        skywarsWinsLabel.setText(String.valueOf(skywarsStats.getWins()));
+        skywarsLossesLabel.setText(String.valueOf(skywarsStats.getLosses()));
         
-        skywarsWlRatioLabel.setText(String.format("%.2f", stats.getSkywarsWLRatio()));
-        applyStatStyle(skywarsWlRatioLabel, stats.getSkywarsWLRatio(), "skywarsWLRatio");
+        skywarsWlRatioLabel.setText(skywarsStats.getFormattedWLRatio());
+        applyStatStyle(skywarsWlRatioLabel, skywarsStats.getWlRatio(), "skywarsWLRatio");
         
-        skywarsKillsLabel.setText(String.valueOf(stats.getSkywarsKills()));
-        skywarsDeathsLabel.setText(String.valueOf(stats.getSkywarsDeaths()));
+        skywarsKillsLabel.setText(String.valueOf(skywarsStats.getKills()));
+        skywarsDeathsLabel.setText(String.valueOf(skywarsStats.getDeaths()));
         
-        skywarsKdRatioLabel.setText(String.format("%.2f", stats.getSkywarsKDRatio()));
-        applyStatStyle(skywarsKdRatioLabel, stats.getSkywarsKDRatio(), "skywarsKDRatio");
+        skywarsKdRatioLabel.setText(skywarsStats.getFormattedKDRatio());
+        applyStatStyle(skywarsKdRatioLabel, skywarsStats.getKdRatio(), "skywarsKDRatio");
         
-        skywarsGamesPlayedLabel.setText(String.valueOf(stats.getSkywarsGamesPlayed()));
+        skywarsGamesPlayedLabel.setText(String.valueOf(skywarsStats.getGamesPlayed()));
     }
     
     /**
      * Display Duels stats
      */
     private void displayDuelsStats(PlayerStats stats) {
-        if (stats.getDuelsGamesPlayed() == 0) {
-            return; // No Duels stats
+        GameStats duelsStats = stats.getDuelsStats();
+        
+        // If no Duels stats available, don't display anything
+        if (duelsStats == null || !duelsStats.hasStats()) {
+            return;
         }
         
-        duelsWinsLabel.setText(String.valueOf(stats.getDuelsWins()));
-        duelsLossesLabel.setText(String.valueOf(stats.getDuelsLosses()));
+        duelsWinsLabel.setText(String.valueOf(duelsStats.getWins()));
+        duelsLossesLabel.setText(String.valueOf(duelsStats.getLosses()));
         
-        duelsWlRatioLabel.setText(String.format("%.2f", stats.getDuelsWLRatio()));
-        applyStatStyle(duelsWlRatioLabel, stats.getDuelsWLRatio(), "duelsWLRatio");
+        duelsWlRatioLabel.setText(duelsStats.getFormattedWLRatio());
+        applyStatStyle(duelsWlRatioLabel, duelsStats.getWlRatio(), "duelsWLRatio");
         
-        duelsKillsLabel.setText(String.valueOf(stats.getDuelsKills()));
-        duelsDeathsLabel.setText(String.valueOf(stats.getDuelsDeaths()));
+        duelsKillsLabel.setText(String.valueOf(duelsStats.getKills()));
+        duelsDeathsLabel.setText(String.valueOf(duelsStats.getDeaths()));
         
-        duelsKdRatioLabel.setText(String.format("%.2f", stats.getDuelsKDRatio()));
-        applyStatStyle(duelsKdRatioLabel, stats.getDuelsKDRatio(), "duelsKDRatio");
+        duelsKdRatioLabel.setText(duelsStats.getFormattedKDRatio());
+        applyStatStyle(duelsKdRatioLabel, duelsStats.getKdRatio(), "duelsKDRatio");
         
-        duelsGamesPlayedLabel.setText(String.valueOf(stats.getDuelsGamesPlayed()));
+        duelsGamesPlayedLabel.setText(String.valueOf(duelsStats.getGamesPlayed()));
     }
     
     /**
      * Display Murder Mystery stats
      */
     private void displayMurderMysteryStats(PlayerStats stats) {
-        mmWinsLabel.setText(String.valueOf(stats.getMmWins()));
-        mmGamesPlayedLabel.setText(String.valueOf(stats.getMmGamesPlayed()));
+        GameStats mmStats = stats.getMurderMysteryStats();
+        
+        // Check if stats exist
+        if (mmStats == null || !mmStats.hasStats()) {
+            murderMysteryPane.setVisible(false);
+            return; // No Murder Mystery stats available
+        }
+        
+        // Show the pane since we have data
+        murderMysteryPane.setVisible(true);
+        
+        mmWinsLabel.setText(String.valueOf(mmStats.getWins()));
+        mmGamesPlayedLabel.setText(String.valueOf(mmStats.getGamesPlayed()));
         
         // Calculate win rate
-        double winRate = stats.getMmGamesPlayed() > 0 
-            ? (double) stats.getMmWins() / stats.getMmGamesPlayed() * 100 
+        double winRate = mmStats.getGamesPlayed() > 0 
+            ? (double) mmStats.getWins() / mmStats.getGamesPlayed() * 100 
             : 0;
         mmWinRateLabel.setText(String.format("%.2f%%", winRate));
         
-        mmCoinsLabel.setText(String.valueOf(stats.getMmCoins()));
-        mmKillsLabel.setText(String.valueOf(stats.getMmKills()));
-        mmDeathsLabel.setText(String.valueOf(stats.getMmDeaths()));
+        mmCoinsLabel.setText(String.valueOf(mmStats.getCoins()));
+        mmKillsLabel.setText(String.valueOf(mmStats.getKills()));
+        mmDeathsLabel.setText(String.valueOf(mmStats.getDeaths()));
         
-        mmKdRatioLabel.setText(String.format("%.2f", stats.getMmKDRatio()));
-        applyStatStyle(mmKdRatioLabel, stats.getMmKDRatio(), "mmKDRatio");
+        mmKdRatioLabel.setText(mmStats.getFormattedKDRatio());
+        applyStatStyle(mmKdRatioLabel, mmStats.getKdRatio(), "mmKDRatio");
     }
     
     /**
      * Display TNT Games stats
      */
     private void displayTNTGamesStats(PlayerStats stats) {
-        tntgamesWinsLabel.setText(String.valueOf(stats.getTntgamesWins()));
-        tntgamesCoinsLabel.setText(String.valueOf(stats.getTntgamesCoins()));
-        tntRunWinsLabel.setText(String.valueOf(stats.getTntRunWins()));
-        tntRunRecordLabel.setText(String.valueOf(stats.getTntRunRecord()) + "s");
-        bowSpleefWinsLabel.setText(String.valueOf(stats.getBowSpleefWins()));
-        wizardsWinsLabel.setText(String.valueOf(stats.getWizardsWins()));
-        pvpRunWinsLabel.setText(String.valueOf(stats.getPvpRunWins()));
+        // Get TNT Games stats
+        TNTGamesStats tntStats = stats.getTNTGamesStats();
+        
+        // Check if stats exist
+        if (tntStats == null || !tntStats.hasStats()) {
+            tntGamesPane.setVisible(false);
+            return; // No TNT Games stats available
+        }
+        
+        // Show the pane since we have data
+        tntGamesPane.setVisible(true);
+        
+        tntgamesWinsLabel.setText(String.valueOf(tntStats.getWins()));
+        tntgamesCoinsLabel.setText(String.valueOf(tntStats.getCoins()));
+        tntRunWinsLabel.setText(String.valueOf(tntStats.getTntRunWins()));
+        tntRunRecordLabel.setText(tntStats.getFormattedTNTRunRecord());
+        bowSpleefWinsLabel.setText(String.valueOf(tntStats.getBowSpleefWins()));
+        wizardsWinsLabel.setText(String.valueOf(tntStats.getWizardsWins()));
+        pvpRunWinsLabel.setText(String.valueOf(tntStats.getPvpRunWins()));
         
         // Apply styling to TNT Run record
-        applyStatStyle(tntRunRecordLabel, stats.getTntRunRecord(), "tntRunRecord");
+        applyStatStyle(tntRunRecordLabel, tntStats.getTntRunRecord(), "tntRunRecord");
     }
     
     /**
      * Display UHC stats
      */
     private void displayUHCStats(PlayerStats stats) {
-        uhcWinsLabel.setText(String.valueOf(stats.getUhcWins()));
-        uhcCoinsLabel.setText(String.valueOf(stats.getUhcCoins()));
-        uhcScoreLabel.setText(String.valueOf(stats.getUhcScore()));
-        uhcKillsLabel.setText(String.valueOf(stats.getUhcKills()));
-        uhcDeathsLabel.setText(String.valueOf(stats.getUhcDeaths()));
+        GameStats uhcStats = stats.getUHCStats();
         
-        uhcKdRatioLabel.setText(String.format("%.2f", stats.getUhcKDRatio()));
-        applyStatStyle(uhcKdRatioLabel, stats.getUhcKDRatio(), "uhcKDRatio");
+        // Check if stats exist
+        if (uhcStats == null || !uhcStats.hasStats()) {
+            uhcPane.setVisible(false);
+            return; // No UHC stats available
+        }
+        
+        // Show the pane since we have data
+        uhcPane.setVisible(true);
+        
+        uhcWinsLabel.setText(String.valueOf(uhcStats.getWins()));
+        uhcCoinsLabel.setText(String.valueOf(uhcStats.getCoins()));
+        uhcScoreLabel.setText(String.valueOf(uhcStats.getScore()));
+        uhcKillsLabel.setText(String.valueOf(uhcStats.getKills()));
+        uhcDeathsLabel.setText(String.valueOf(uhcStats.getDeaths()));
+        
+        uhcKdRatioLabel.setText(uhcStats.getFormattedKDRatio());
+        applyStatStyle(uhcKdRatioLabel, uhcStats.getKdRatio(), "uhcKDRatio");
     }
     
     /**
      * Display Build Battle stats
      */
     private void displayBuildBattleStats(PlayerStats stats) {
-        buildBattleWinsLabel.setText(String.valueOf(stats.getBuildBattleWins()));
-        buildBattleGamesPlayedLabel.setText(String.valueOf(stats.getBuildBattleGamesPlayed()));
+        GameStats buildBattleStats = stats.getBuildBattleStats();
+        
+        // Check if stats exist
+        if (buildBattleStats == null || !buildBattleStats.hasStats()) {
+            buildBattlePane.setVisible(false);
+            return; // No Build Battle stats available
+        }
+        
+        // Show the pane since we have data
+        buildBattlePane.setVisible(true);
+        
+        buildBattleWinsLabel.setText(String.valueOf(buildBattleStats.getWins()));
+        buildBattleGamesPlayedLabel.setText(String.valueOf(buildBattleStats.getGamesPlayed()));
         
         // Calculate win rate
-        double winRate = stats.getBuildBattleGamesPlayed() > 0 
-            ? (double) stats.getBuildBattleWins() / stats.getBuildBattleGamesPlayed() * 100 
+        double winRate = buildBattleStats.getGamesPlayed() > 0 
+            ? (double) buildBattleStats.getWins() / buildBattleStats.getGamesPlayed() * 100 
             : 0;
         buildBattleWinRateLabel.setText(String.format("%.2f%%", winRate));
         
-        buildBattleCoinsLabel.setText(String.valueOf(stats.getBuildBattleCoins()));
-        buildBattleScoreLabel.setText(String.valueOf(stats.getBuildBattleScore()));
+        buildBattleCoinsLabel.setText(String.valueOf(buildBattleStats.getCoins()));
+        buildBattleScoreLabel.setText(String.valueOf(buildBattleStats.getScore()));
         
         // Apply styling to Build Battle score
-        applyStatStyle(buildBattleScoreLabel, stats.getBuildBattleScore(), "buildBattleScore");
+        applyStatStyle(buildBattleScoreLabel, buildBattleStats.getScore(), "buildBattleScore");
     }
     
     /**
      * Display Mega Walls stats
      */
     private void displayMegaWallsStats(PlayerStats stats) {
-        megaWallsWinsLabel.setText(String.valueOf(stats.getMegaWallsWins()));
-        megaWallsAssistsLabel.setText(String.valueOf(stats.getMegaWallsAssists()));
-        megaWallsKillsLabel.setText(String.valueOf(stats.getMegaWallsKills()));
-        megaWallsDeathsLabel.setText(String.valueOf(stats.getMegaWallsDeaths()));
+        MegaWallsStats megaWallsStats = stats.getMegaWallsStats();
         
-        megaWallsKdRatioLabel.setText(String.format("%.2f", stats.getMegaWallsKDRatio()));
-        applyStatStyle(megaWallsKdRatioLabel, stats.getMegaWallsKDRatio(), "megaWallsKDRatio");
+        // Check if stats exist
+        if (megaWallsStats == null || !megaWallsStats.hasStats()) {
+            megaWallsPane.setVisible(false);
+            return; // No Mega Walls stats available
+        }
         
-        megaWallsFinalKillsLabel.setText(String.valueOf(stats.getMegaWallsFinalKills()));
-        megaWallsFinalDeathsLabel.setText(String.valueOf(stats.getMegaWallsFinalDeaths()));
+        // Show the pane since we have data
+        megaWallsPane.setVisible(true);
         
-        megaWallsFinalKdRatioLabel.setText(String.format("%.2f", stats.getMegaWallsFinalKDRatio()));
-        applyStatStyle(megaWallsFinalKdRatioLabel, stats.getMegaWallsFinalKDRatio(), "megaWallsFinalKDRatio");
+        megaWallsWinsLabel.setText(String.valueOf(megaWallsStats.getWins()));
+        megaWallsAssistsLabel.setText(String.valueOf(megaWallsStats.getAssists()));
+        megaWallsKillsLabel.setText(String.valueOf(megaWallsStats.getKills()));
+        megaWallsDeathsLabel.setText(String.valueOf(megaWallsStats.getDeaths()));
+        
+        megaWallsKdRatioLabel.setText(megaWallsStats.getFormattedKDRatio());
+        applyStatStyle(megaWallsKdRatioLabel, megaWallsStats.getKdRatio(), "megaWallsKDRatio");
+        
+        megaWallsFinalKillsLabel.setText(String.valueOf(megaWallsStats.getFinalKills()));
+        megaWallsFinalDeathsLabel.setText(String.valueOf(megaWallsStats.getFinalDeaths()));
+        
+        megaWallsFinalKdRatioLabel.setText(megaWallsStats.getFormattedFinalKDRatio());
+        applyStatStyle(megaWallsFinalKdRatioLabel, megaWallsStats.getFinalKDRatio(), "megaWallsFinalKDRatio");
     }
     
     /**
      * Display SkyBlock stats
      */
     private void displaySkyBlockStats(PlayerStats stats) {
-        skyblockProfileLabel.setText(stats.getSkyblockProfile() != null ? stats.getSkyblockProfile() : "None");
-        skyblockCoinsLabel.setText(String.format("%,d", stats.getSkyblockCoins()));
-        skyblockBankLabel.setText(String.format("%,d", stats.getSkyblockBank()));
-        skyblockPurseLabel.setText(String.format("%,d", stats.getSkyblockPurse()));
+        SkyBlockStats skyblockStats = stats.getSkyBlockStats();
+        
+        // Check if stats exist
+        if (skyblockStats == null || !skyblockStats.hasStats()) {
+            skyblockPane.setVisible(false);
+            return; // No SkyBlock stats available
+        }
+        
+        // Show the pane since we have data
+        skyblockPane.setVisible(true);
+        
+        skyblockProfileLabel.setText(skyblockStats.getProfileName() != null ? skyblockStats.getProfileName() : "Unknown");
+        skyblockCoinsLabel.setText(skyblockStats.getFormattedTotalCoins());
+        skyblockBankLabel.setText(skyblockStats.getFormattedBank());
+        skyblockPurseLabel.setText(skyblockStats.getFormattedPurse());
     }
     
     /**

@@ -15,7 +15,7 @@
                 <Insets top="10" right="15" bottom="10" left="15"/>
             </padding>
             <Label text="HypeStats" styleClass="header-label"/>
-            <Label text="Bedwars Companion" styleClass="sub-header-label"/>
+            <Label text="Hypixel Stats Companion" styleClass="sub-header-label"/>
             <Pane HBox.hgrow="ALWAYS" />
             <Button fx:id="settingsButton" text="Settings" onAction="#showSettings"/>
         </HBox>

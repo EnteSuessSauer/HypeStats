@@ -6,6 +6,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hypestats.HypeStatsApp;
 import com.hypestats.model.PlayerStats;
+import com.hypestats.model.GameStats;
+import com.hypestats.model.BedwarsStats;
+import com.hypestats.model.TNTGamesStats;
+import com.hypestats.model.MegaWallsStats;
+import com.hypestats.model.SkyBlockStats;
+import com.hypestats.model.UHCStats;
+import com.hypestats.model.BuildBattleStats;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -17,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Service for interacting with the Hypixel API
@@ -30,7 +38,7 @@ public class HypixelApiService {
     private final OkHttpClient client;
     private final Gson gson;
     private final List<Long> requestTimestamps;
-    private final Random random = new Random();
+    private Random random = new Random();
     
     public HypixelApiService() {
         this.client = new OkHttpClient.Builder()
@@ -140,97 +148,120 @@ public class HypixelApiService {
         stats.setUuid("test-" + username.toLowerCase());
         stats.setUsername(username);
         
+        // Set a random seed based on username for consistent results
+        long seed = 0;
+        for (char c : username.toCharArray()) {
+            seed = 31 * seed + c;
+        }
+        random = new Random(seed);
+        
         // Network stats
         stats.setNetworkLevel(random.nextInt(250) + 1);
         stats.setKarma(random.nextInt(100000) + 1);
         stats.setAchievementPoints(random.nextInt(10000) + 1);
+        stats.setAchievementCompletionPercent(random.nextInt(100) + 1);
         
         // Generate believable test data for Bedwars
-        stats.setBedwarsLevel(random.nextInt(1000) + 1);
-        stats.setBedwarsWins(random.nextInt(5000) + 1);
-        stats.setBedwarsLosses(random.nextInt(2000) + 1);
-        stats.setBedwarsWLRatio((double) stats.getBedwarsWins() / Math.max(1, stats.getBedwarsLosses()));
-        
-        stats.setBedwarsKills(random.nextInt(15000) + 1);
-        stats.setBedwarsDeaths(random.nextInt(10000) + 1);
-        stats.setBedwarsKDRatio((double) stats.getBedwarsKills() / Math.max(1, stats.getBedwarsDeaths()));
-        
-        stats.setBedwarsFinalKills(random.nextInt(10000) + 1);
-        stats.setBedwarsFinalDeaths(random.nextInt(5000) + 1);
-        stats.setBedwarsFinalKDRatio((double) stats.getBedwarsFinalKills() / Math.max(1, stats.getBedwarsFinalDeaths()));
-        
-        stats.setBedwarsBedsBroken(random.nextInt(5000) + 1);
-        stats.setBedwarsBedsLost(random.nextInt(3000) + 1);
-        stats.setBedwarsGamesPlayed(stats.getBedwarsWins() + stats.getBedwarsLosses());
+        BedwarsStats bedwarsStats = new BedwarsStats();
+        bedwarsStats.setLevel(random.nextInt(500) + 1); // More realistic range of Bedwars levels
+        bedwarsStats.setWins(random.nextInt(5000) + 1);
+        bedwarsStats.setLosses(random.nextInt(2000) + 1);
+        bedwarsStats.setKills(random.nextInt(15000) + 1);
+        bedwarsStats.setDeaths(random.nextInt(10000) + 1);
+        bedwarsStats.setFinalKills(random.nextInt(10000) + 1);
+        bedwarsStats.setFinalDeaths(random.nextInt(5000) + 1);
+        bedwarsStats.setBedsBroken(random.nextInt(5000) + 1);
+        bedwarsStats.setBedsLost(random.nextInt(3000) + 1);
+        bedwarsStats.setGamesPlayed(bedwarsStats.getWins() + bedwarsStats.getLosses());
+        bedwarsStats.setWinstreak(random.nextInt(20) + 1);
+        bedwarsStats.calculateDerivedStats();
+        stats.addGameStats("BEDWARS", bedwarsStats);
         
         // Generate mock Skywars stats
-        stats.setSkywarsLevel(random.nextInt(50) + 1);
-        stats.setSkywarsWins(random.nextInt(2000) + 1);
-        stats.setSkywarsLosses(random.nextInt(3000) + 1);
-        stats.setSkywarsWLRatio((double) stats.getSkywarsWins() / Math.max(1, stats.getSkywarsLosses()));
-        stats.setSkywarsKills(random.nextInt(8000) + 1);
-        stats.setSkywarsDeaths(random.nextInt(7000) + 1);
-        stats.setSkywarsKDRatio((double) stats.getSkywarsKills() / Math.max(1, stats.getSkywarsDeaths()));
-        stats.setSkywarsCoins(random.nextInt(100000) + 1);
-        stats.setSkywarsGamesPlayed(stats.getSkywarsWins() + stats.getSkywarsLosses());
+        GameStats skywarsStats = new GameStats();
+        skywarsStats.setLevel(random.nextInt(50) + 1);
+        skywarsStats.setWins(random.nextInt(2000) + 1);
+        skywarsStats.setLosses(random.nextInt(3000) + 1);
+        skywarsStats.setKills(random.nextInt(8000) + 1);
+        skywarsStats.setDeaths(random.nextInt(7000) + 1);
+        skywarsStats.setCoins(random.nextInt(100000) + 1);
+        skywarsStats.setGamesPlayed(skywarsStats.getWins() + skywarsStats.getLosses());
+        skywarsStats.calculateDerivedStats();
+        stats.addGameStats("SKYWARS", skywarsStats);
         
         // Generate mock Duels stats
-        stats.setDuelsWins(random.nextInt(3000) + 1);
-        stats.setDuelsLosses(random.nextInt(2000) + 1);
-        stats.setDuelsWLRatio((double) stats.getDuelsWins() / Math.max(1, stats.getDuelsLosses()));
-        stats.setDuelsKills(random.nextInt(6000) + 1);
-        stats.setDuelsDeaths(random.nextInt(4000) + 1);
-        stats.setDuelsKDRatio((double) stats.getDuelsKills() / Math.max(1, stats.getDuelsDeaths()));
-        stats.setDuelsCoins(random.nextInt(50000) + 1);
-        stats.setDuelsGamesPlayed(stats.getDuelsWins() + stats.getDuelsLosses());
+        GameStats duelsStats = new GameStats();
+        duelsStats.setWins(random.nextInt(3000) + 1);
+        duelsStats.setLosses(random.nextInt(2000) + 1);
+        duelsStats.setKills(random.nextInt(6000) + 1);
+        duelsStats.setDeaths(random.nextInt(4000) + 1);
+        duelsStats.setCoins(random.nextInt(50000) + 1);
+        duelsStats.setGamesPlayed(duelsStats.getWins() + duelsStats.getLosses());
+        duelsStats.calculateDerivedStats();
+        stats.addGameStats("DUELS", duelsStats);
+        
+        // ----- NEW GAME MODES WITH CLEAR DISTINCT VALUES -----
         
         // Generate mock Murder Mystery stats
-        stats.setMmWins(random.nextInt(1000) + 1);
-        stats.setMmGamesPlayed(random.nextInt(3000) + 1);
-        stats.setMmKills(random.nextInt(5000) + 1);
-        stats.setMmDeaths(random.nextInt(4000) + 1);
-        stats.setMmKDRatio((double) stats.getMmKills() / Math.max(1, stats.getMmDeaths()));
-        stats.setMmCoins(random.nextInt(30000) + 1);
+        GameStats mmStats = new GameStats();
+        mmStats.setWins(100 + random.nextInt(900));
+        mmStats.setGamesPlayed(500 + random.nextInt(2500));
+        mmStats.setKills(200 + random.nextInt(4800));
+        mmStats.setDeaths(100 + random.nextInt(3900));
+        mmStats.setCoins(5000 + random.nextInt(25000));
+        mmStats.calculateDerivedStats();
+        stats.addGameStats("MURDER_MYSTERY", mmStats);
         
         // Generate mock TNT Games stats
-        stats.setTntgamesWins(random.nextInt(1500) + 1);
-        stats.setTntgamesCoins(random.nextInt(40000) + 1);
-        stats.setTntRunWins(random.nextInt(800) + 1);
-        stats.setTntRunRecord(random.nextInt(500) + 100);
-        stats.setBowSpleefWins(random.nextInt(400) + 1);
-        stats.setWizardsWins(random.nextInt(200) + 1);
-        stats.setPvpRunWins(random.nextInt(300) + 1);
+        TNTGamesStats tntStats = new TNTGamesStats();
+        tntStats.setWins(150 + random.nextInt(1350));
+        tntStats.setCoins(6000 + random.nextInt(34000));
+        tntStats.setTntRunWins(50 + random.nextInt(750));
+        tntStats.setTntRunRecord(200 + random.nextInt(300));
+        tntStats.setBowSpleefWins(75 + random.nextInt(325));
+        tntStats.setWizardsWins(25 + random.nextInt(175));
+        tntStats.setPvpRunWins(50 + random.nextInt(250));
+        tntStats.calculateDerivedStats();
+        stats.addGameStats("TNTGAMES", tntStats);
         
         // Generate mock UHC stats
-        stats.setUhcWins(random.nextInt(300) + 1);
-        stats.setUhcKills(random.nextInt(1500) + 1);
-        stats.setUhcDeaths(random.nextInt(1000) + 1);
-        stats.setUhcKDRatio((double) stats.getUhcKills() / Math.max(1, stats.getUhcDeaths()));
-        stats.setUhcCoins(random.nextInt(20000) + 1);
-        stats.setUhcScore(random.nextInt(5000) + 1);
+        GameStats uhcStats = new GameStats();
+        uhcStats.setWins(50 + random.nextInt(250));
+        uhcStats.setKills(300 + random.nextInt(1200));
+        uhcStats.setDeaths(200 + random.nextInt(800));
+        uhcStats.setCoins(4000 + random.nextInt(16000));
+        uhcStats.setScore(1000 + random.nextInt(4000));
+        uhcStats.calculateDerivedStats();
+        stats.addGameStats("UHC", uhcStats);
         
         // Generate mock Build Battle stats
-        stats.setBuildBattleWins(random.nextInt(500) + 1);
-        stats.setBuildBattleGamesPlayed(random.nextInt(1500) + 1);
-        stats.setBuildBattleScore(random.nextInt(3000) + 500);
-        stats.setBuildBattleCoins(random.nextInt(25000) + 1);
+        BuildBattleStats buildBattleStats = new BuildBattleStats();
+        buildBattleStats.setWins(75 + random.nextInt(425));
+        buildBattleStats.setGamesPlayed(300 + random.nextInt(1200));
+        buildBattleStats.setScore(800 + random.nextInt(2200));
+        buildBattleStats.setCoins(3000 + random.nextInt(22000));
+        buildBattleStats.calculateDerivedStats();
+        stats.addGameStats("BUILDBATTLE", buildBattleStats);
         
         // Generate mock Mega Walls stats
-        stats.setMegaWallsWins(random.nextInt(400) + 1);
-        stats.setMegaWallsKills(random.nextInt(3000) + 1);
-        stats.setMegaWallsDeaths(random.nextInt(2500) + 1);
-        stats.setMegaWallsKDRatio((double) stats.getMegaWallsKills() / Math.max(1, stats.getMegaWallsDeaths()));
-        stats.setMegaWallsAssists(random.nextInt(1000) + 1);
-        stats.setMegaWallsFinalKills(random.nextInt(1500) + 1);
-        stats.setMegaWallsFinalDeaths(random.nextInt(1000) + 1);
-        stats.setMegaWallsFinalKDRatio((double) stats.getMegaWallsFinalKills() / Math.max(1, stats.getMegaWallsFinalDeaths()));
+        MegaWallsStats megaWallsStats = new MegaWallsStats();
+        megaWallsStats.setWins(80 + random.nextInt(320));
+        megaWallsStats.setKills(500 + random.nextInt(2500));
+        megaWallsStats.setDeaths(400 + random.nextInt(2100));
+        megaWallsStats.setAssists(200 + random.nextInt(800));
+        megaWallsStats.setFinalKills(300 + random.nextInt(1200));
+        megaWallsStats.setFinalDeaths(200 + random.nextInt(800));
+        megaWallsStats.calculateDerivedStats();
+        stats.addGameStats("MEGA_WALLS", megaWallsStats);
         
         // Generate mock SkyBlock stats
+        SkyBlockStats skyBlockStats = new SkyBlockStats();
         String[] profileNames = {"Banana", "Pineapple", "Apple", "Strawberry", "Grape", "Mango", "Coconut"};
-        stats.setSkyblockProfile(profileNames[random.nextInt(profileNames.length)]);
-        stats.setSkyblockBank(random.nextInt(100000000) + 1);
-        stats.setSkyblockPurse(random.nextInt(10000000) + 1);
-        stats.setSkyblockCoins(stats.getSkyblockBank() + stats.getSkyblockPurse());
+        skyBlockStats.setProfileName(profileNames[random.nextInt(profileNames.length)]);
+        skyBlockStats.setBank(10000000 + random.nextInt(90000000));
+        skyBlockStats.setPurse(1000000 + random.nextInt(9000000));
+        skyBlockStats.setCoins(skyBlockStats.getBank() + skyBlockStats.getPurse());
+        stats.addGameStats("SKYBLOCK", skyBlockStats);
         
         // Randomly assign rank
         String[] possibleRanks = {"DEFAULT", "VIP", "VIP+", "MVP", "MVP+", "MVP++"};
@@ -242,7 +273,11 @@ public class HypixelApiService {
         
         // 70% chance to have a visible winstreak
         if (random.nextInt(10) < 7) {
-            stats.setBedwarsWinstreak(random.nextInt(50) + 1);
+            // Get the BedwarsStats from PlayerStats
+            BedwarsStats bwStats = (BedwarsStats) stats.getGameStats("BEDWARS");
+            if (bwStats != null) {
+                bwStats.setWinstreak(random.nextInt(50) + 1);
+            }
         }
         
         // Set account age and playtime
@@ -257,6 +292,32 @@ public class HypixelApiService {
         // Set random playtime (min 5% of account age, max 20%)
         double playTimePercent = random.nextDouble() * 0.15 + 0.05; // 5% to 20%
         stats.setPlaytime((long) (stats.getAccountAge() * playTimePercent));
+        
+        // Set current status
+        String[] possibleGames = {"Lobby", "Bedwars", "Skywars", "Murder Mystery", "Duels", "Build Battle", "UHC"};
+        boolean isOnline = random.nextInt(10) < 7; // 70% chance to be online
+        
+        if (isOnline) {
+            stats.setCurrentStatus("Online in " + possibleGames[random.nextInt(possibleGames.length)]);
+        } else {
+            stats.setCurrentStatus("Offline");
+        }
+        
+        // Add some social media links
+        Map<String, String> socialLinks = new HashMap<>();
+        if (random.nextInt(10) < 7) {
+            // 70% chance to have Discord
+            socialLinks.put("discord", username + "#" + (1000 + random.nextInt(9000)));
+        }
+        if (random.nextInt(10) < 5) {
+            // 50% chance to have YouTube
+            socialLinks.put("youtube", "https://youtube.com/c/" + username);
+        }
+        if (random.nextInt(10) < 3) {
+            // 30% chance to have Twitch
+            socialLinks.put("twitch", "https://twitch.tv/" + username);
+        }
+        stats.setSocialLinks(socialLinks);
         
         // Calculate top stats
         stats.calculateTopStats();
@@ -463,7 +524,7 @@ public class HypixelApiService {
         parseMegaWallsStats(stats, statsObj);
         
         // Parse SkyBlock stats
-        parseSkyBlockStats(stats, statsObj, playerData);
+        parseSkyBlockStats(stats, statsObj);
         
         // Extract player rank
         parsePlayerRank(stats, playerData);
@@ -485,20 +546,10 @@ public class HypixelApiService {
         if (statsObj.has("Bedwars") && !statsObj.get("Bedwars").isJsonNull()) {
             bedwarsStats = statsObj.getAsJsonObject("Bedwars");
         } else {
-            bedwarsStats = new JsonObject();
+            return; // No Bedwars stats
         }
         
-        // Calculate Bedwars level (star)
-        double bedwarsExp = 0;
-        if (playerData.has("achievements") && !playerData.get("achievements").isJsonNull()) {
-            JsonObject achievements = playerData.getAsJsonObject("achievements");
-            if (achievements.has("bedwars_level")) {
-                bedwarsExp = achievements.get("bedwars_level").getAsDouble();
-            }
-        }
-        stats.setBedwarsLevel(bedwarsExp);
-        
-        // Extract stats from bedwars data
+        // Extract basic stats
         int wins = getIntValue(bedwarsStats, "wins_bedwars", 0);
         int losses = getIntValue(bedwarsStats, "losses_bedwars", 0);
         int kills = getIntValue(bedwarsStats, "kills_bedwars", 0);
@@ -507,33 +558,70 @@ public class HypixelApiService {
         int finalDeaths = getIntValue(bedwarsStats, "final_deaths_bedwars", 0);
         int bedsBroken = getIntValue(bedwarsStats, "beds_broken_bedwars", 0);
         int bedsLost = getIntValue(bedwarsStats, "beds_lost_bedwars", 0);
-        
-        // Winstreak might be hidden
+        int gamesPlayed = wins + losses;
         Integer winstreak = null;
+        
+        // Winstreak might be hidden for privacy
         if (bedwarsStats.has("winstreak") && !bedwarsStats.get("winstreak").isJsonNull()) {
             winstreak = bedwarsStats.get("winstreak").getAsInt();
         }
         
-        // Calculate derived stats
+        // Calculate ratios
         double wlRatio = losses > 0 ? (double) wins / losses : wins;
         double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
         double finalKdRatio = finalDeaths > 0 ? (double) finalKills / finalDeaths : finalKills;
-        int gamesPlayed = wins + losses;
         
-        // Set all the stats
-        stats.setBedwarsWins(wins);
-        stats.setBedwarsLosses(losses);
-        stats.setBedwarsWLRatio(wlRatio);
-        stats.setBedwarsKills(kills);
-        stats.setBedwarsDeaths(deaths);
-        stats.setBedwarsKDRatio(kdRatio);
-        stats.setBedwarsFinalKills(finalKills);
-        stats.setBedwarsFinalDeaths(finalDeaths);
-        stats.setBedwarsFinalKDRatio(finalKdRatio);
-        stats.setBedwarsWinstreak(winstreak);
-        stats.setBedwarsBedsBroken(bedsBroken);
-        stats.setBedwarsBedsLost(bedsLost);
-        stats.setBedwarsGamesPlayed(gamesPlayed);
+        // Calculate experience & level
+        double bedwarsExp = 0;
+        if (bedwarsStats.has("Experience") && !bedwarsStats.get("Experience").isJsonNull()) {
+            bedwarsExp = bedwarsStats.get("Experience").getAsDouble();
+        }
+        
+        // Level calculation based on prestige & level
+        int prestige = 0;
+        int level = 0;
+        
+        // Check player achievement data for stars_bedwars
+        if (playerData.has("achievements") && !playerData.get("achievements").isJsonNull()) {
+            JsonObject achievements = playerData.getAsJsonObject("achievements");
+            if (achievements.has("bedwars_level") && !achievements.get("bedwars_level").isJsonNull()) {
+                level = achievements.get("bedwars_level").getAsInt();
+            }
+        }
+        
+        // If level is still 0 but we have experience, calculate level from experience
+        if (level == 0 && bedwarsExp > 0) {
+            // Bedwars level calculation formula:
+            // First level requires 500 XP, second level requires 1000 XP
+            // All other levels require 5000 XP
+            if (bedwarsExp < 500) {
+                level = 0;
+            } else if (bedwarsExp < 1500) {
+                level = 1;
+            } else {
+                level = (int) Math.floor((bedwarsExp - 1500) / 5000) + 2;
+            }
+        }
+        
+        // Create BedwarsStats object
+        BedwarsStats bwStats = new BedwarsStats();
+        bwStats.setLevel(level);
+        bwStats.setWins(wins);
+        bwStats.setLosses(losses);
+        bwStats.setKills(kills);
+        bwStats.setDeaths(deaths);
+        bwStats.setFinalKills(finalKills);
+        bwStats.setFinalDeaths(finalDeaths);
+        bwStats.setBedsBroken(bedsBroken);
+        bwStats.setBedsLost(bedsLost);
+        bwStats.setGamesPlayed(gamesPlayed);
+        bwStats.setWinstreak(winstreak);
+        
+        // Calculate derived stats
+        bwStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("BEDWARS", bwStats);
     }
     
     /**
@@ -553,29 +641,34 @@ public class HypixelApiService {
         int kills = getIntValue(skywarsStats, "kills", 0);
         int deaths = getIntValue(skywarsStats, "deaths", 0);
         int coins = getIntValue(skywarsStats, "coins", 0);
+        int gamesPlayed = getIntValue(skywarsStats, "games_played", 0);
+        if (gamesPlayed == 0) {
+            gamesPlayed = wins + losses; // If games_played not available, estimate from wins/losses
+        }
         
-        // Skywars level/experience
+        // Skywars specific stats
         double skywarsExp = 0;
         if (skywarsStats.has("skywars_experience") && !skywarsStats.get("skywars_experience").isJsonNull()) {
             skywarsExp = skywarsStats.get("skywars_experience").getAsDouble();
             // Formula for Skywars level calculation (approximation)
-            stats.setSkywarsLevel(Math.floor(skywarsExp / 10000) + 1);
+            skywarsExp = Math.floor(skywarsExp / 10000) + 1;
         }
         
-        // Calculate derived stats
-        double wlRatio = losses > 0 ? (double) wins / losses : wins;
-        double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
-        int gamesPlayed = wins + losses;
+        // Create GameStats object for Skywars
+        GameStats swStats = new GameStats();
+        swStats.setLevel(skywarsExp);
+        swStats.setWins(wins);
+        swStats.setLosses(losses);
+        swStats.setKills(kills);
+        swStats.setDeaths(deaths);
+        swStats.setCoins(coins);
+        swStats.setGamesPlayed(gamesPlayed);
         
-        // Set all the stats
-        stats.setSkywarsWins(wins);
-        stats.setSkywarsLosses(losses);
-        stats.setSkywarsWLRatio(wlRatio);
-        stats.setSkywarsKills(kills);
-        stats.setSkywarsDeaths(deaths);
-        stats.setSkywarsKDRatio(kdRatio);
-        stats.setSkywarsCoins(coins);
-        stats.setSkywarsGamesPlayed(gamesPlayed);
+        // Calculate derived stats
+        swStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("SKYWARS", swStats);
     }
     
     /**
@@ -595,21 +688,25 @@ public class HypixelApiService {
         int kills = getIntValue(duelsStats, "kills", 0);
         int deaths = getIntValue(duelsStats, "deaths", 0);
         int coins = getIntValue(duelsStats, "coins", 0);
+        int gamesPlayed = getIntValue(duelsStats, "games_played_duels", 0);
+        if (gamesPlayed == 0) {
+            gamesPlayed = wins + losses; // If games_played not available, estimate from wins/losses
+        }
+        
+        // Create GameStats object for Duels
+        GameStats duelsGameStats = new GameStats();
+        duelsGameStats.setWins(wins);
+        duelsGameStats.setLosses(losses);
+        duelsGameStats.setKills(kills);
+        duelsGameStats.setDeaths(deaths);
+        duelsGameStats.setCoins(coins);
+        duelsGameStats.setGamesPlayed(gamesPlayed);
         
         // Calculate derived stats
-        double wlRatio = losses > 0 ? (double) wins / losses : wins;
-        double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
-        int gamesPlayed = wins + losses;
+        duelsGameStats.calculateDerivedStats();
         
-        // Set all the stats
-        stats.setDuelsWins(wins);
-        stats.setDuelsLosses(losses);
-        stats.setDuelsWLRatio(wlRatio);
-        stats.setDuelsKills(kills);
-        stats.setDuelsDeaths(deaths);
-        stats.setDuelsKDRatio(kdRatio);
-        stats.setDuelsCoins(coins);
-        stats.setDuelsGamesPlayed(gamesPlayed);
+        // Add to PlayerStats
+        stats.addGameStats("DUELS", duelsGameStats);
     }
     
     /**
@@ -630,16 +727,19 @@ public class HypixelApiService {
         int deaths = getIntValue(mmStats, "deaths", 0);
         int coins = getIntValue(mmStats, "coins", 0);
         
-        // Calculate KD ratio
-        double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
+        // Create GameStats object for Murder Mystery
+        GameStats mmGameStats = new GameStats();
+        mmGameStats.setWins(wins);
+        mmGameStats.setGamesPlayed(gamesPlayed);
+        mmGameStats.setKills(kills);
+        mmGameStats.setDeaths(deaths);
+        mmGameStats.setCoins(coins);
         
-        // Set all the stats
-        stats.setMmWins(wins);
-        stats.setMmGamesPlayed(gamesPlayed);
-        stats.setMmKills(kills);
-        stats.setMmDeaths(deaths);
-        stats.setMmKDRatio(kdRatio);
-        stats.setMmCoins(coins);
+        // Calculate derived stats
+        mmGameStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("MURDER_MYSTERY", mmGameStats);
     }
     
     /**
@@ -657,41 +757,55 @@ public class HypixelApiService {
         int wins = getIntValue(arcadeStats, "wins", 0);
         int coins = getIntValue(arcadeStats, "coins", 0);
         
-        // Set all the stats
-        stats.setArcadeWins(wins);
-        stats.setArcadeCoins(coins);
+        // Create GameStats object for Arcade
+        GameStats arcadeGameStats = new GameStats();
+        arcadeGameStats.setWins(wins);
+        arcadeGameStats.setCoins(coins);
+        
+        // Calculate derived stats
+        arcadeGameStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("ARCADE", arcadeGameStats);
     }
     
     /**
      * Parse TNT Games stats from API response
      */
     private void parseTNTGamesStats(PlayerStats stats, JsonObject statsObj) {
-        JsonObject tntGamesStats = null;
+        JsonObject tntStats = null;
         if (statsObj.has("TNTGames") && !statsObj.get("TNTGames").isJsonNull()) {
-            tntGamesStats = statsObj.getAsJsonObject("TNTGames");
+            tntStats = statsObj.getAsJsonObject("TNTGames");
         } else {
             return; // No TNT Games stats
         }
         
         // Extract basic stats
-        int wins = getIntValue(tntGamesStats, "wins", 0);
-        int coins = getIntValue(tntGamesStats, "coins", 0);
+        int wins = getIntValue(tntStats, "wins", 0);
+        int coins = getIntValue(tntStats, "coins", 0);
         
-        // Game mode specific wins
-        int tntRunWins = getIntValue(tntGamesStats, "wins_tntrun", 0);
-        int tntRunRecord = getIntValue(tntGamesStats, "record_tntrun", 0);
-        int bowSpleefWins = getIntValue(tntGamesStats, "wins_bowspleef", 0);
-        int wizardsWins = getIntValue(tntGamesStats, "wins_capture", 0);
-        int pvpRunWins = getIntValue(tntGamesStats, "wins_pvprun", 0);
+        // Extract TNT-specific stats
+        int tntRunWins = getIntValue(tntStats, "wins_tntrun", 0);
+        int tntRunRecord = getIntValue(tntStats, "record_tntrun", 0);
+        int bowSpleefWins = getIntValue(tntStats, "wins_bowspleef", 0);
+        int wizardsWins = getIntValue(tntStats, "wins_capture", 0);
+        int pvpRunWins = getIntValue(tntStats, "wins_pvprun", 0);
         
-        // Set all the stats
-        stats.setTntgamesWins(wins);
-        stats.setTntgamesCoins(coins);
-        stats.setTntRunWins(tntRunWins);
-        stats.setTntRunRecord(tntRunRecord);
-        stats.setBowSpleefWins(bowSpleefWins);
-        stats.setWizardsWins(wizardsWins);
-        stats.setPvpRunWins(pvpRunWins);
+        // Create TNTGamesStats object
+        TNTGamesStats tntGameStats = new TNTGamesStats();
+        tntGameStats.setWins(wins);
+        tntGameStats.setCoins(coins);
+        tntGameStats.setTntRunWins(tntRunWins);
+        tntGameStats.setTntRunRecord(tntRunRecord);
+        tntGameStats.setBowSpleefWins(bowSpleefWins);
+        tntGameStats.setWizardsWins(wizardsWins);
+        tntGameStats.setPvpRunWins(pvpRunWins);
+        
+        // Calculate derived stats
+        tntGameStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("TNTGAMES", tntGameStats);
     }
     
     /**
@@ -712,40 +826,50 @@ public class HypixelApiService {
         int coins = getIntValue(uhcStats, "coins", 0);
         int score = getIntValue(uhcStats, "score", 0);
         
-        // Calculate KD ratio
-        double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
+        // Create UHCStats object
+        UHCStats uhcGameStats = new UHCStats();
+        uhcGameStats.setWins(wins);
+        uhcGameStats.setKills(kills);
+        uhcGameStats.setDeaths(deaths);
+        uhcGameStats.setCoins(coins);
+        uhcGameStats.setScore(score);
         
-        // Set all the stats
-        stats.setUhcWins(wins);
-        stats.setUhcKills(kills);
-        stats.setUhcDeaths(deaths);
-        stats.setUhcKDRatio(kdRatio);
-        stats.setUhcCoins(coins);
-        stats.setUhcScore(score);
+        // Calculate derived stats
+        uhcGameStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("UHC", uhcGameStats);
     }
     
     /**
      * Parse Build Battle stats from API response
      */
     private void parseBuildBattleStats(PlayerStats stats, JsonObject statsObj) {
-        JsonObject buildStats = null;
+        JsonObject buildBattleStats = null;
         if (statsObj.has("BuildBattle") && !statsObj.get("BuildBattle").isJsonNull()) {
-            buildStats = statsObj.getAsJsonObject("BuildBattle");
+            buildBattleStats = statsObj.getAsJsonObject("BuildBattle");
         } else {
             return; // No Build Battle stats
         }
         
         // Extract basic stats
-        int wins = getIntValue(buildStats, "wins", 0);
-        int gamesPlayed = getIntValue(buildStats, "games_played", 0);
-        int score = getIntValue(buildStats, "score", 0);
-        int coins = getIntValue(buildStats, "coins", 0);
+        int wins = getIntValue(buildBattleStats, "wins", 0);
+        int gamesPlayed = getIntValue(buildBattleStats, "games_played", 0);
+        int score = getIntValue(buildBattleStats, "score", 0);
+        int coins = getIntValue(buildBattleStats, "coins", 0);
         
-        // Set all the stats
-        stats.setBuildBattleWins(wins);
-        stats.setBuildBattleGamesPlayed(gamesPlayed);
-        stats.setBuildBattleScore(score);
-        stats.setBuildBattleCoins(coins);
+        // Create BuildBattleStats object
+        BuildBattleStats buildBattleGameStats = new BuildBattleStats();
+        buildBattleGameStats.setWins(wins);
+        buildBattleGameStats.setGamesPlayed(gamesPlayed);
+        buildBattleGameStats.setScore(score);
+        buildBattleGameStats.setCoins(coins);
+        
+        // Calculate derived stats
+        buildBattleGameStats.calculateDerivedStats();
+        
+        // Add to PlayerStats
+        stats.addGameStats("BUILDBATTLE", buildBattleGameStats);
     }
     
     /**
@@ -765,111 +889,145 @@ public class HypixelApiService {
         int deaths = getIntValue(megaWallsStats, "deaths", 0);
         int assists = getIntValue(megaWallsStats, "assists", 0);
         int finalKills = getIntValue(megaWallsStats, "final_kills", 0);
-        int finalDeaths = getIntValue(megaWallsStats, "final_deaths", 0);
+        int finalAssists = getIntValue(megaWallsStats, "final_assists", 0);
+        
+        // Create MegaWallsStats object
+        MegaWallsStats megaWallsGameStats = new MegaWallsStats();
+        megaWallsGameStats.setWins(wins);
+        megaWallsGameStats.setKills(kills);
+        megaWallsGameStats.setDeaths(deaths);
+        megaWallsGameStats.setAssists(assists);
+        megaWallsGameStats.setFinalKills(finalKills);
+        megaWallsGameStats.setFinalAssists(finalAssists);
         
         // Calculate derived stats
-        double kdRatio = deaths > 0 ? (double) kills / deaths : kills;
-        double finalKdRatio = finalDeaths > 0 ? (double) finalKills / finalDeaths : finalKills;
+        megaWallsGameStats.calculateDerivedStats();
         
-        // Set all the stats
-        stats.setMegaWallsWins(wins);
-        stats.setMegaWallsKills(kills);
-        stats.setMegaWallsDeaths(deaths);
-        stats.setMegaWallsKDRatio(kdRatio);
-        stats.setMegaWallsAssists(assists);
-        stats.setMegaWallsFinalKills(finalKills);
-        stats.setMegaWallsFinalDeaths(finalDeaths);
-        stats.setMegaWallsFinalKDRatio(finalKdRatio);
+        // Add to PlayerStats
+        stats.addGameStats("MEGA_WALLS", megaWallsGameStats);
     }
     
     /**
      * Parse SkyBlock stats from API response
      */
-    private void parseSkyBlockStats(PlayerStats stats, JsonObject statsObj, JsonObject playerData) {
-        // SkyBlock stats are more complex and stored in separate API endpoints
-        // We'll extract the profile name and basic coin data if available
-        if (statsObj.has("SkyBlock") && !statsObj.get("SkyBlock").isJsonNull()) {
-            JsonObject skyBlockStats = statsObj.getAsJsonObject("SkyBlock");
-            
-            if (skyBlockStats.has("profiles")) {
-                JsonElement profiles = skyBlockStats.get("profiles");
-                
-                // Handle different profile structures - can be either object or array
-                if (profiles.isJsonObject()) {
-                    // Handle as object - likely the new API format
-                    JsonObject profilesObj = profiles.getAsJsonObject();
-                    
-                    // Just take the first profile we find
-                    for (Map.Entry<String, JsonElement> entry : profilesObj.entrySet()) {
-                        if (entry.getValue().isJsonObject()) {
-                            JsonObject profile = entry.getValue().getAsJsonObject();
-                            setProfileData(stats, profile);
-                            break; // Just use the first profile
-                        }
-                    }
-                } else if (profiles.isJsonArray() && profiles.getAsJsonArray().size() > 0) {
-                    // Handle as array - older API format
-                    JsonObject profile = profiles.getAsJsonArray().get(0).getAsJsonObject();
-                    setProfileData(stats, profile);
-                }
+    private void parseSkyBlockStats(PlayerStats stats, JsonObject playerObj) {
+        // Check if SkyBlock profiles exist
+        if (!playerObj.has("stats") || !playerObj.getAsJsonObject("stats").has("SkyBlock")) {
+            return; // No SkyBlock stats
+        }
+
+        // Create SkyBlockStats object
+        SkyBlockStats skyBlockStats = new SkyBlockStats();
+        
+        // Get player's UUID
+        String playerUuid = playerObj.has("uuid") ? playerObj.get("uuid").getAsString() : "";
+        if (playerUuid.isEmpty()) {
+            return; // No player UUID found
+        }
+        
+        // Get the player's SkyBlock profiles
+        JsonObject skyblockProfiles = null;
+        try {
+            skyblockProfiles = fetchSkyBlockProfiles(playerUuid);
+        } catch (Exception e) {
+            System.err.println("Error fetching SkyBlock profiles: " + e.getMessage());
+            return;
+        }
+        
+        if (skyblockProfiles == null || !skyblockProfiles.has("profiles") || skyblockProfiles.get("profiles").isJsonNull()) {
+            return; // No SkyBlock profiles found
+        }
+        
+        // Find the active profile (either the one marked as selected or the first one)
+        String activeProfileId = "";
+        String profileName = "";
+        JsonObject activeProfile = null;
+        JsonArray profiles = skyblockProfiles.getAsJsonArray("profiles");
+        
+        for (int i = 0; i < profiles.size(); i++) {
+            JsonObject profile = profiles.get(i).getAsJsonObject();
+            if (profile.has("selected") && profile.get("selected").getAsBoolean()) {
+                activeProfileId = profile.has("profile_id") ? profile.get("profile_id").getAsString() : "";
+                profileName = profile.has("cute_name") ? profile.get("cute_name").getAsString() : "";
+                activeProfile = profile;
+                break;
             }
         }
         
-        // If we didn't get any SkyBlock data, set defaults
-        if (stats.getSkyblockProfile() == null) {
-            stats.setSkyblockProfile("None");
-            stats.setSkyblockBank(0);
-            stats.setSkyblockPurse(0);
-            stats.setSkyblockCoins(0);
-            
-            // Set default skill levels
-            stats.setSkyblockFarmingLevel(1);
-            stats.setSkyblockMiningLevel(1);
-            stats.setSkyblockCombatLevel(1);
-            stats.setSkyblockForagingLevel(1);
-            stats.setSkyblockFishingLevel(1);
-            stats.setSkyblockEnchantingLevel(1);
-            stats.setSkyblockAlchemyLevel(1);
-            stats.setSkyblockTamingLevel(1);
-        }
-    }
-    
-    /**
-     * Helper method to set profile data from a profile object
-     */
-    private void setProfileData(PlayerStats stats, JsonObject profile) {
-        // Get profile name
-        if (profile.has("cute_name")) {
-            stats.setSkyblockProfile(profile.get("cute_name").getAsString());
-        } else if (profile.has("profile_name")) {
-            stats.setSkyblockProfile(profile.get("profile_name").getAsString());  
+        // If no selected profile found, use the first one
+        if (activeProfile == null && profiles.size() > 0) {
+            JsonObject profile = profiles.get(0).getAsJsonObject();
+            activeProfileId = profile.has("profile_id") ? profile.get("profile_id").getAsString() : "";
+            profileName = profile.has("cute_name") ? profile.get("cute_name").getAsString() : "";
+            activeProfile = profile;
         }
         
-        // Get basic economy stats
-        if (profile.has("banking") && !profile.get("banking").isJsonNull()) {
-            JsonObject banking = profile.getAsJsonObject("banking");
-            if (banking.has("balance")) {
-                stats.setSkyblockBank((int) banking.get("balance").getAsDouble());
+        if (activeProfile == null) {
+            return; // No profile found
+        }
+        
+        // Set the profile name
+        skyBlockStats.setProfileName(profileName);
+        
+        // Get member data for the player
+        JsonObject memberData = null;
+        if (activeProfile.has("members") && activeProfile.getAsJsonObject("members").has(playerUuid)) {
+            memberData = activeProfile.getAsJsonObject("members").getAsJsonObject(playerUuid);
+        }
+        
+        if (memberData == null) {
+            return; // No member data found
+        }
+        
+        // Extract coin-related stats
+        int purseCoins = 0;
+        int bankCoins = 0;
+        
+        if (memberData.has("coin_purse")) {
+            try {
+                purseCoins = (int) memberData.get("coin_purse").getAsDouble();
+            } catch (Exception e) {
+                // Failed to parse coin purse
             }
         }
         
-        if (profile.has("coin_purse")) {
-            stats.setSkyblockPurse((int) profile.get("coin_purse").getAsDouble());
+        // Bank is in the profile shared data
+        if (activeProfile.has("banking") && activeProfile.getAsJsonObject("banking").has("balance")) {
+            try {
+                bankCoins = (int) activeProfile.getAsJsonObject("banking").get("balance").getAsDouble();
+            } catch (Exception e) {
+                // Failed to parse bank balance
+            }
         }
         
-        // Total coins estimation
-        stats.setSkyblockCoins(stats.getSkyblockBank() + stats.getSkyblockPurse());
+        // Set coin-related stats
+        skyBlockStats.setPurse(purseCoins);
+        skyBlockStats.setBank(bankCoins);
+        skyBlockStats.setCoins(purseCoins + bankCoins);
         
-        // We would need separate API calls for skill levels
-        // For now, setting default values
-        stats.setSkyblockFarmingLevel(1);
-        stats.setSkyblockMiningLevel(1);
-        stats.setSkyblockCombatLevel(1);
-        stats.setSkyblockForagingLevel(1);
-        stats.setSkyblockFishingLevel(1);
-        stats.setSkyblockEnchantingLevel(1);
-        stats.setSkyblockAlchemyLevel(1);
-        stats.setSkyblockTamingLevel(1);
+        // Extract skill levels if available
+        if (memberData.has("experience_skill_farming")) {
+            int farmingLevel = calculateSkillLevel(memberData.get("experience_skill_farming").getAsDouble(), "farming");
+            skyBlockStats.setFarmingLevel(farmingLevel);
+        }
+        
+        if (memberData.has("experience_skill_mining")) {
+            int miningLevel = calculateSkillLevel(memberData.get("experience_skill_mining").getAsDouble(), "mining");
+            skyBlockStats.setMiningLevel(miningLevel);
+        }
+        
+        if (memberData.has("experience_skill_combat")) {
+            int combatLevel = calculateSkillLevel(memberData.get("experience_skill_combat").getAsDouble(), "combat");
+            skyBlockStats.setCombatLevel(combatLevel);
+        }
+        
+        if (memberData.has("experience_skill_foraging")) {
+            int foragingLevel = calculateSkillLevel(memberData.get("experience_skill_foraging").getAsDouble(), "foraging");
+            skyBlockStats.setForagingLevel(foragingLevel);
+        }
+        
+        // Add to PlayerStats
+        stats.addGameStats("SKYBLOCK", skyBlockStats);
     }
     
     /**
@@ -939,10 +1097,8 @@ public class HypixelApiService {
                 JsonArray achievements = playerData.getAsJsonArray("achievementsOneTime");
                 int completedCount = achievements.size();
                 
-                // Estimate total achievements (adjust this number based on current Hypixel data)
-                int totalAchievements = 250;
-                int percent = (int)Math.round((completedCount / (double)totalAchievements) * 100);
-                stats.setAchievementCompletionPercent(percent);
+                // Just set the count of completed achievements
+                stats.setAchievementCompletionPercent(completedCount);
             } catch (Exception e) {
                 log.error("Error parsing achievements: {}", e.getMessage());
             }
@@ -1066,6 +1222,59 @@ public class HypixelApiService {
             return jsonObject.get(key).getAsInt();
         }
         return defaultValue;
+    }
+    
+    /**
+     * Fetch SkyBlock profiles for a player
+     */
+    private JsonObject fetchSkyBlockProfiles(String playerUuid) throws IOException {
+        String apiKey = SettingsManager.getInstance().getApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new IOException("API key is not set");
+        }
+        
+        String url = HYPIXEL_API_URL + "/skyblock/profiles?uuid=" + playerUuid;
+        Request request = new Request.Builder()
+                .url(url)
+                .header("API-Key", apiKey)
+                .build();
+
+        try (okhttp3.Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Failed to fetch SkyBlock profiles: " + response.code());
+            }
+
+            String jsonData = response.body().string();
+            JsonObject responseObj = new Gson().fromJson(jsonData, JsonObject.class);
+            
+            if (!responseObj.has("success") || !responseObj.get("success").getAsBoolean()) {
+                String message = responseObj.has("cause") ? responseObj.get("cause").getAsString() : "Unknown error";
+                throw new IOException("API error: " + message);
+            }
+            
+            return responseObj;
+        }
+    }
+    
+    /**
+     * Calculate skill level from experience points
+     */
+    private int calculateSkillLevel(double experience, String skillType) {
+        // SkyBlock skill experience requirements
+        // These are approximate values for general skills
+        double[] skillExperienceRequirements = {
+            50, 175, 375, 675, 1175, 1925, 2925, 4425, 6425, 9925, 
+            14925, 22425, 32425, 47425, 67425, 97425, 147425, 222425, 322425, 
+            472425, 672425, 922425, 1222425, 1622425, 2022425
+        };
+        
+        // Find the level based on experience
+        int level = 0;
+        while (level < skillExperienceRequirements.length && experience >= skillExperienceRequirements[level]) {
+            level++;
+        }
+        
+        return level + 1; // Levels are 1-based
     }
     
     /**

@@ -1,239 +1,547 @@
 /* Main application styles */
 .root {
     -fx-background-color: #262728;
+    background-color: #262728;
     -fx-text-fill: white;
+    color: white;
     -fx-font-family: 'Segoe UI', Arial, sans-serif;
+    font-family: 'Segoe UI', Arial, sans-serif;
 }
 
 /* Text colors based on Hypixel ranks */
 .text-AQUA {
     -fx-text-fill: #00AAFF;
+    color: #00AAFF;
 }
 
 .text-GREEN {
     -fx-text-fill: #55FF55;
+    color: #55FF55;
 }
 
 .text-RED {
     -fx-text-fill: #FF5555;
+    color: #FF5555;
 }
 
 .text-YELLOW {
     -fx-text-fill: #FFAA00;
+    color: #FFAA00;
 }
 
 .text-GRAY {
     -fx-text-fill: #AAAAAA;
+    color: #AAAAAA;
 }
 
 /* Label styles */
 .label {
     -fx-text-fill: white;
+    color: white;
 }
 
 .header-label {
     -fx-font-size: 20px;
+    font-size: 20px;
     -fx-font-weight: bold;
+    font-weight: bold;
     -fx-text-fill: #00AAFF;
+    color: #00AAFF;
 }
 
 .sub-header-label {
     -fx-font-size: 16px;
+    font-size: 16px;
     -fx-font-weight: bold;
+    font-weight: bold;
     -fx-text-fill: #FFAA00;
+    color: #FFAA00;
 }
 
 .section-header {
     -fx-font-size: 14px;
+    font-size: 14px;
     -fx-font-weight: bold;
+    font-weight: bold;
     -fx-text-fill: white;
+    color: white;
 }
 
 /* Button styles */
 .button {
     -fx-background-color: #374151;
+    background-color: #374151;
     -fx-text-fill: white;
+    color: white;
     -fx-cursor: hand;
+    cursor: pointer;
     -fx-background-radius: 4px;
+    border-radius: 4px;
 }
 
 .button:hover {
     -fx-background-color: #4B5563;
+    background-color: #4B5563;
 }
 
 .button:pressed {
     -fx-background-color: #6B7280;
+    background-color: #6B7280;
 }
 
 .primary-button {
     -fx-background-color: #00AAFF;
+    background-color: #00AAFF;
     -fx-text-fill: white;
+    color: white;
 }
 
 .primary-button:hover {
     -fx-background-color: #0088CC;
+    background-color: #0088CC;
 }
 
 .primary-button:pressed {
     -fx-background-color: #0077B3;
+    background-color: #0077B3;
 }
 
 .danger-button {
     -fx-background-color: #FF5555;
+    background-color: #FF5555;
     -fx-text-fill: white;
+    color: white;
 }
 
 .danger-button:hover {
     -fx-background-color: #FF3333;
+    background-color: #FF3333;
 }
 
 .danger-button:pressed {
     -fx-background-color: #E60000;
+    background-color: #E60000;
 }
 
 /* Text field styles */
 .text-field {
     -fx-background-color: #374151;
+    background-color: #374151;
     -fx-text-fill: white;
+    color: white;
     -fx-prompt-text-fill: #9CA3AF;
     -fx-background-radius: 4px;
+    border-radius: 4px;
 }
 
 .text-field:focused {
     -fx-background-color: #4B5563;
+    background-color: #4B5563;
     -fx-border-color: #00AAFF;
+    border-color: #00AAFF;
     -fx-border-width: 1px;
+    border-width: 1px;
     -fx-border-radius: 4px;
+    border-radius: 4px;
 }
 
 /* Table styles */
 .table-view {
     -fx-background-color: #374151;
+    background-color: #374151;
     -fx-table-cell-border-color: transparent;
+    border-color: transparent;
     -fx-background-radius: 4px;
+    border-radius: 4px;
 }
 
 .table-view .column-header-background {
     -fx-background-color: #2D3748;
+    background-color: #2D3748;
     -fx-background-radius: 4px 4px 0 0;
+    border-radius: 4px 4px 0 0;
 }
 
 .table-view .column-header, .table-view .filler {
     -fx-background-color: transparent;
+    background-color: transparent;
     -fx-size: 35px;
+    size: 35px;
+    width: 35px;
     -fx-border-width: 0 0 1 0;
+    border-width: 0 0 1px 0;
     -fx-border-color: #4B5563;
+    border-color: #4B5563;
 }
 
 .table-view .column-header .label {
     -fx-text-fill: white;
+    color: white;
     -fx-font-weight: bold;
+    font-weight: bold;
 }
 
 .table-row-cell {
     -fx-background-color: #374151;
+    background-color: #374151;
     -fx-text-fill: white;
+    color: white;
 }
 
 .table-row-cell:odd {
     -fx-background-color: #323A44;
+    background-color: #323A44;
 }
 
 .table-row-cell:selected {
     -fx-background-color: #00AAFF;
+    background-color: #00AAFF;
     -fx-text-fill: white;
+    color: white;
 }
 
 .table-view .table-cell {
     -fx-text-fill: white;
+    color: white;
     -fx-alignment: center-left;
+    text-align: left;
 }
 
 /* Split pane styles */
 .split-pane {
     -fx-background-color: transparent;
+    background-color: transparent;
 }
 
 .split-pane .split-pane-divider {
     -fx-background-color: #4B5563;
+    background-color: #4B5563;
     -fx-padding: 0 1px 0 1px;
+    padding: 0 1px;
 }
 
 /* Status indicator styles */
 .status-running {
     -fx-text-fill: #55FF55;
+    color: #55FF55;
 }
 
 .status-stopped {
     -fx-text-fill: #FF5555;
+    color: #FF5555;
 }
 
 .status-warning {
     -fx-text-fill: #FFAA00;
+    color: #FFAA00;
 }
 
 /* Card styles */
 .card {
     -fx-background-color: #323A44;
+    background-color: #323A44;
     -fx-background-radius: 4px;
+    border-radius: 4px;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);
     -fx-padding: 10px;
+    padding: 10px;
 }
 
 /* Player stats styles */
 .stats-grid {
     -fx-hgap: 10px;
+    grid-column-gap: 10px;
     -fx-vgap: 10px;
+    grid-row-gap: 10px;
 }
 
 .stat-card {
     -fx-background-color: #2D3748;
+    background-color: #2D3748;
     -fx-background-radius: 4px;
+    border-radius: 4px;
     -fx-padding: 8px;
+    padding: 8px;
     -fx-alignment: center;
+    text-align: center;
 }
 
 .stat-label {
     -fx-font-size: 12px;
+    font-size: 12px;
     -fx-text-fill: #9CA3AF;
+    color: #9CA3AF;
 }
 
 .stat-value {
     -fx-font-size: 16px;
+    font-size: 16px;
     -fx-font-weight: bold;
+    font-weight: bold;
     -fx-text-fill: white;
+    color: white;
+}
+
+/* Stat highlighting styles */
+.stat-exceptional {
+    -fx-text-fill: #FF55FF !important; /* Bright pink */
+    color: #FF55FF !important;
+    -fx-font-weight: bold;
+    font-weight: bold;
+}
+
+.stat-great {
+    -fx-text-fill: #55FFFF !important; /* Cyan */
+    color: #55FFFF !important;
+    -fx-font-weight: bold;
+    font-weight: bold;
+}
+
+.stat-good {
+    -fx-text-fill: #55FF55 !important; /* Green */
+    color: #55FF55 !important;
+}
+
+.stat-average {
+    -fx-text-fill: #FFFFFF !important; /* White */
+    color: #FFFFFF !important;
+}
+
+.stat-below-average {
+    -fx-text-fill: #FFAA00 !important; /* Orange */
+    color: #FFAA00 !important;
+}
+
+.stat-poor {
+    -fx-text-fill: #FF5555 !important; /* Red */
+    color: #FF5555 !important;
+}
+
+/* Top stats styles */
+.top-stats-container {
+    -fx-background-color: #323A44;
+    background-color: #323A44;
+    -fx-background-radius: 4px;
+    border-radius: 4px;
+    -fx-padding: 10px;
+    padding: 10px;
+    -fx-spacing: 8px;
+    margin-bottom: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);
+}
+
+.top-stat {
+    -fx-font-size: 16px;
+    font-size: 16px;
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-padding: 5px 10px;
+    padding: 5px 10px;
+    -fx-background-radius: 4px;
+    border-radius: 4px;
+    -fx-background-color: #2D3748;
+    background-color: #2D3748;
 }
 
 /* Minecraft-themed elements */
 .minecraft-font {
     -fx-font-family: 'Minecraft', monospace;
+    font-family: 'Minecraft', monospace;
 }
 
-.bedwars-level {
+.hypixel-level {
     -fx-font-weight: bold;
+    font-weight: bold;
     -fx-text-fill: #FFAA00;
+    color: #FFAA00;
 }
 
 /* Scrollbar styles */
 .scroll-bar {
     -fx-background-color: #262728;
+    background-color: #262728;
 }
 
 .scroll-bar:vertical .thumb {
     -fx-background-color: #4B5563;
+    background-color: #4B5563;
 }
 
 .scroll-bar:vertical .thumb:hover {
     -fx-background-color: #6B7280;
+    background-color: #6B7280;
 }
 
 .scroll-bar .increment-button,
 .scroll-bar .decrement-button {
     -fx-background-color: transparent;
+    background-color: transparent;
     -fx-border-color: transparent;
+    border-color: transparent;
 }
 
 .scroll-bar .increment-arrow,
 .scroll-bar .decrement-arrow {
     -fx-background-color: white;
+    background-color: white;
+}
+
+/* Level display, guild tag and other recently added styles */
+.level-display {
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-text-fill: #FFAA00;
+    color: #FFAA00;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 2, 0, 0, 0);
+}
+
+.guild-tag {
+    -fx-font-size: 14px;
+    font-size: 14px;
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-text-fill: #AAAAFF;
+    color: #AAAAFF;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 2, 0, 0, 0);
+}
+
+.status-label {
+    -fx-font-size: 12px;
+    font-size: 12px;
+    -fx-padding: 3 6 3 6;
+    padding: 3px 6px;
+    -fx-background-radius: 3;
+    border-radius: 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 1, 0, 0, 0);
+}
+
+.status-online {
+    -fx-background-color: #55AA55;
+    background-color: #55AA55;
+    -fx-text-fill: white;
+    color: white;
+}
+
+.status-offline {
+    -fx-background-color: #AA5555;
+    background-color: #AA5555;
+    -fx-text-fill: white;
+    color: white;
+}
+
+/* Social media icons */
+.social-links {
+    -fx-alignment: center-right;
+    text-align: right;
+    -fx-spacing: 8;
+    gap: 8px;
+}
+
+.social-button {
+    -fx-background-color: #374151;
+    background-color: #374151;
+    -fx-padding: 6px;
+    padding: 6px;
+    -fx-background-radius: 50%;
+    border-radius: 50%;
+    -fx-min-width: 32px;
+    min-width: 32px;
+    -fx-min-height: 32px;
+    min-height: 32px;
+    -fx-max-width: 32px;
+    max-width: 32px;
+    -fx-max-height: 32px;
+    max-height: 32px;
+    -fx-cursor: hand;
+    cursor: pointer;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 3, 0, 0, 0);
+}
+
+.social-button:hover {
+    -fx-background-color: #4B5563;
+    background-color: #4B5563;
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 0);
+}
+
+.social-button:pressed {
+    -fx-background-color: #00AAFF;
+    background-color: #00AAFF;
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+/* Keep the SVG shape styles as they are JavaFX specific */
+.discord-icon {
+    -fx-background-color: #5865F2;
+    background-color: #5865F2;
+    -fx-shape: "M 20.6644 20 C 20.6644 20 19.8014 18.9762 19.0822 18.0714 C 22.2226 17.1905 23.4212 15.2381 23.4212 15.2381 C 22.4384 15.881 21.5034 16.3334 20.6644 16.6429 C 19.4658 17.1429 18.3151 17.4762 17.1884 17.6667 C 14.887 18.0953 12.7774 17.9762 10.9795 17.6429 C 9.61301 17.381 8.43836 17 7.45548 16.6191 C 6.90411 16.4048 6.30479 16.1429 5.70548 15.8096 C 5.63356 15.7619 5.56164 15.7381 5.48973 15.6905 C 5.44178 15.6667 5.41781 15.6429 5.39384 15.6191 C 4.96233 15.381 4.7226 15.2381 4.7226 15.2381 C 4.7226 15.2381 5.87329 17.1429 8.91781 18.0476 C 8.19863 18.9524 7.31164 20 7.31164 20 C 2.0137 19.8333 0 16.381 0 16.381 C 0 8.7144 3.45205 2.50017 3.45205 2.50017 C 6.90411 -0.07123 10.1884 0.000197861 10.1884 0.000197861 L 10.4281 0.285909 C 6.11301 1.52399 4.12329 3.40493 4.12329 3.40493 C 4.12329 3.40493 4.65068 3.11921 5.53767 2.71446 C 8.10274 1.59542 10.1404 1.2381 10.9795 1.16684 C 11.1233 1.14257 11.2432 1.11829 11.387 1.11829 C 12.8493 0.976379 14.5034 0.976379 16.2295 1.11829 C 18.5068 1.33613 20.9521 1.92867 23.4452 3.40493 C 23.4452 3.40493 21.5514 1.61971 17.476 0.381146 L 17.8116 0.000197861 C 17.8116 0.000197861 21.0959 -0.07123 24.5479 2.50017 C 24.5479 2.50017 28 8.7144 28 16.381 C 28 16.381 25.9623 19.8333 20.6644 20 Z M 9.51712 8.88106 C 8.15068 8.88106 7.07192 10.0715 7.07192 11.5239 C 7.07192 12.9763 8.17466 14.1667 9.51712 14.1667 C 10.8836 14.1667 11.9623 12.9763 11.9623 11.5239 C 11.9863 10.0715 10.8836 8.88106 9.51712 8.88106 Z M 18.2671 8.88106 C 16.9007 8.88106 15.8219 10.0715 15.8219 11.5239 C 15.8219 12.9763 16.9247 14.1667 18.2671 14.1667 C 19.6336 14.1667 20.7123 12.9763 20.7123 11.5239 C 20.7123 10.0715 19.6336 8.88106 18.2671 8.88106 Z";
+    -fx-background-position: center;
+    background-position: center;
+    -fx-background-size: 20px;
+    background-size: 20px;
+}
+
+.youtube-icon {
+    -fx-background-color: #FF0000;
+    background-color: #FF0000;
+    -fx-shape: "M 28.5029 8.716 C 28.5029 8.716 28.2322 6.955 27.3951 6.0977 C 26.3245 4.9725 25.1139 4.9689 24.5468 4.9016 C 20.5507 4.6 14.5029 4.6 14.5029 4.6 L 14.497 4.6 C 14.497 4.6 8.4493 4.6 4.4531 4.9016 C 3.8865 4.9689 2.6754 4.9725 1.6049 6.0977 C 0.7678 6.955 0.497 8.716 0.497 8.716 C 0.497 8.716 0.2 10.7647 0.2 12.8135 L 0.2 14.7323 C 0.2 16.7811 0.497 18.8299 0.497 18.8299 C 0.497 18.8299 0.7678 20.5909 1.6049 21.4482 C 2.6754 22.5734 4.1179 22.534 4.7656 22.6608 C 6.7656 22.8902 14.5 22.95 14.5 22.95 C 14.5 22.95 20.5507 22.9412 24.5468 22.6396 C 25.1139 22.5734 26.3245 22.5698 27.3951 21.4446 C 28.2322 20.5873 28.5029 18.8264 28.5029 18.8264 C 28.5029 18.8264 28.8 16.7776 28.8 14.7288 L 28.8 12.81 C 28.8 10.7612 28.5029 8.7124 28.5029 8.7124 L 28.5029 8.716 Z M 12.5 17.554 L 12.5 9.446 L 19.2045 13.5047 L 12.5 17.554 Z";
+    -fx-background-position: center;
+    background-position: center;
+    -fx-background-size: 20px;
+    background-size: 20px;
+}
+
+.twitter-icon {
+    -fx-background-color: #1DA1F2;
+    background-color: #1DA1F2;
+    -fx-shape: "M 29 7.02375 C 28.0233 7.47479 26.9762 7.7809 25.8813 7.92562 C 27.0013 7.24897 27.8542 6.1602 28.2554 4.87604 C 27.2083 5.50813 26.0408 5.96812 24.8071 6.22354 C 23.8304 5.13477 22.4221 4.46708 20.8833 4.46708 C 17.9613 4.46708 15.5833 6.81896 15.5833 9.74104 C 15.5833 10.2153 15.6321 10.6772 15.7296 11.1205 C 11.3179 10.8838 7.42 8.79833 4.78459 5.6709 C 4.26625 6.56625 3.97417 7.59479 3.97417 8.69251 C 3.97417 10.7689 5.02042 12.5985 6.59709 13.6515 C 5.70958 13.6231 4.87334 13.3962 4.14584 13.0139 L 4.14584 13.0834 C 4.14584 15.6577 5.99917 17.8044 8.5525 18.3588 C 8.04667 18.4857 7.51584 18.5551 6.965 18.5551 C 6.57084 18.5551 6.18334 18.5185 5.81084 18.4613 C 6.58584 20.5699 8.5525 22.1181 10.8742 22.1668 C 9.06084 23.5872 6.77167 24.4449 4.30542 24.4449 C 3.8225 24.4449 3.3475 24.4206 2.875 24.3719 C 5.225 25.8776 7.99667 26.7595 10.9758 26.7595 C 20.8833 26.7595 26.3083 18.6428 26.3083 11.546 C 26.3083 11.2968 26.3083 11.0476 26.2842 10.7984 C 27.3313 10.0301 28.2554 9.07708 29 8.0057 L 29 7.02375 Z";
+    -fx-background-position: center;
+    background-position: center;
+    -fx-background-size: 20px;
+    background-size: 20px;
+}
+
+.twitch-icon {
+    -fx-background-color: #9146FF;
+    background-color: #9146FF;
+    -fx-shape: "M 2.5675 0 L 0 7.025 L 0 30 L 7.5 30 L 7.5 33.75 L 11.25 33.75 L 15 30 L 20 30 L 27.5 22.5 L 27.5 0 L 2.5675 0 Z M 25 20.625 L 21.25 24.375 L 15 24.375 L 11.25 28.125 L 11.25 24.375 L 5 24.375 L 5 3.75 L 25 3.75 L 25 20.625 Z M 21.25 10.625 L 21.25 17.5 L 16.25 17.5 L 16.25 10.625 L 21.25 10.625 Z M 15 10.625 L 15 17.5 L 10 17.5 L 10 10.625 L 15 10.625 Z";
+    -fx-background-position: center;
+    background-position: center;
+    -fx-background-size: 20px;
+    background-size: 20px;
+}
+
+.instagram-icon {
+    -fx-background-color: #E4405F;
+    background-color: #E4405F;
+    -fx-shape: "M 16 7.7787 C 11.465 7.7787 7.77832 11.4654 7.77832 16.0004 C 7.77832 20.5354 11.465 24.2221 16 24.2221 C 20.535 24.2221 24.2217 20.5354 24.2217 16.0004 C 24.2217 11.4654 20.535 7.7787 16 7.7787 Z M 16 21.3346 C 13.0933 21.3346 10.6658 18.9071 10.6658 16.0004 C 10.6658 13.0937 13.0933 10.6662 16 10.6662 C 18.9067 10.6662 21.3342 13.0937 21.3342 16.0004 C 21.3342 18.9071 18.9067 21.3346 16 21.3346 Z M 26.4617 7.4429 C 26.4617 8.5179 25.5867 9.3929 24.5117 9.3929 C 23.4367 9.3929 22.5617 8.5179 22.5617 7.4429 C 22.5617 6.3679 23.4367 5.4929 24.5117 5.4929 C 25.5867 5.4929 26.4617 6.3679 26.4617 7.4429 Z M 31.8867 9.4179 C 31.7617 6.8679 31.1867 4.6096 29.3167 2.7396 C 27.4467 0.8696 25.1883 0.2946 22.6383 0.1696 C 19.9967 0.0246 12.0033 0.0246 9.36168 0.1696 C 6.81168 0.2946 4.55334 0.8696 2.68334 2.7396 C 0.813344 4.6096 0.238344 6.8679 0.113344 9.4179 C -0.0316556 12.0596 -0.0316556 20.0529 0.113344 22.6946 C 0.238344 25.2446 0.813344 27.5029 2.68334 29.3729 C 4.55334 31.2429 6.81168 31.8179 9.36168 31.9429 C 12.0033 32.0879 19.9967 32.0879 22.6383 31.9429 C 25.1883 31.8179 27.4467 31.2429 29.3167 29.3729 C 31.1867 27.5029 31.7617 25.2446 31.8867 22.6946 C 32.0317 20.0529 32.0317 12.0596 31.8867 9.4179 Z M 28.4683 25.5654 C 27.9217 26.9654 26.8383 28.0487 25.4383 28.5954 C 23.3133 29.4204 18.3133 29.2204 16 29.2204 C 13.6867 29.2204 8.68668 29.4204 6.56168 28.5954 C 5.16168 28.0487 4.07834 26.9654 3.53168 25.5654 C 2.70668 23.4404 2.90668 18.4404 2.90668 16.1271 C 2.90668 13.8137 2.70668 8.8137 3.53168 6.6887 C 4.07834 5.2887 5.16168 4.2054 6.56168 3.6587 C 8.68668 2.8337 13.6867 3.0337 16 3.0337 C 18.3133 3.0337 23.3133 2.8337 25.4383 3.6587 C 26.8383 4.2054 27.9217 5.2887 28.4683 6.6887 C 29.2933 8.8137 29.0933 13.8137 29.0933 16.1271 C 29.0933 18.4404 29.2933 23.4404 28.4683 25.5654 Z";
+    -fx-background-position: center;
+    background-position: center;
+    -fx-background-size: 20px;
+    background-size: 20px;
+}
+
+/* For tooltip styles */
+.tooltip {
+    -fx-background-color: rgba(40, 40, 40, 0.9);
+    background-color: rgba(40, 40, 40, 0.9);
+    -fx-text-fill: white;
+    color: white;
+    -fx-font-size: 12px;
+    font-size: 12px;
+    -fx-padding: 5 8 5 8;
+    padding: 5px 8px;
+    -fx-background-radius: 3;
+    border-radius: 3px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 5, 0, 0, 0);
+}
+
+/* For achievement completion display */
+.stat-value-suffix {
+    -fx-font-size: 14px;
+    font-size: 14px;
+    -fx-text-fill: #BBBBBB;
+    color: #BBBBBB;
 } 

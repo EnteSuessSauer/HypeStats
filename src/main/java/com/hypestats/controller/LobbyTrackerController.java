@@ -3,6 +3,7 @@ package com.hypestats.controller;
 import com.hypestats.model.LobbyPlayer;
 import com.hypestats.model.MinecraftLog;
 import com.hypestats.model.PlayerStats;
+import com.hypestats.model.BedwarsStats;
 import com.hypestats.util.HypixelApiService;
 import com.hypestats.util.MinecraftLogWatcher;
 import com.hypestats.util.SettingsManager;
@@ -108,19 +109,27 @@ public class LobbyTrackerController {
         });
         winsColumn.setCellValueFactory(cellData -> {
             PlayerStats stats = cellData.getValue().getStats();
-            return stats != null ? new SimpleStringProperty(String.valueOf(stats.getWins())) : new SimpleStringProperty("");
+            if (stats == null) return new SimpleStringProperty("");
+            BedwarsStats bedwarsStats = stats.getBedwarsStats();
+            return new SimpleStringProperty(bedwarsStats != null ? String.valueOf(bedwarsStats.getWins()) : "");
         });
         wlRatioColumn.setCellValueFactory(cellData -> {
             PlayerStats stats = cellData.getValue().getStats();
-            return new SimpleStringProperty(stats != null ? stats.getFormattedWLRatio() : "");
+            if (stats == null) return new SimpleStringProperty("");
+            BedwarsStats bedwarsStats = stats.getBedwarsStats();
+            return new SimpleStringProperty(bedwarsStats != null ? bedwarsStats.getFormattedWLRatio() : "");
         });
         kdRatioColumn.setCellValueFactory(cellData -> {
             PlayerStats stats = cellData.getValue().getStats();
-            return new SimpleStringProperty(stats != null ? stats.getFormattedKDRatio() : "");
+            if (stats == null) return new SimpleStringProperty("");
+            BedwarsStats bedwarsStats = stats.getBedwarsStats();
+            return new SimpleStringProperty(bedwarsStats != null ? bedwarsStats.getFormattedKDRatio() : "");
         });
         finalKdRatioColumn.setCellValueFactory(cellData -> {
             PlayerStats stats = cellData.getValue().getStats();
-            return new SimpleStringProperty(stats != null ? stats.getFormattedFinalKDRatio() : "");
+            if (stats == null) return new SimpleStringProperty("");
+            BedwarsStats bedwarsStats = stats.getBedwarsStats();
+            return new SimpleStringProperty(bedwarsStats != null ? bedwarsStats.getFormattedFinalKDRatio() : "");
         });
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("statusDisplay"));
         

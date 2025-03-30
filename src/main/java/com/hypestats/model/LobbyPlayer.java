@@ -3,7 +3,7 @@ package com.hypestats.model;
 import lombok.Data;
 
 /**
- * Represents a player detected in the current Minecraft Bedwars lobby
+ * Represents a player detected in the current Minecraft lobby
  */
 @Data
 public class LobbyPlayer {
