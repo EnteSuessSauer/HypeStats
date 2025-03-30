@@ -132,6 +132,11 @@ class LogFileStateTest {
         logLines.add("[20:51:09] [Client thread/INFO]: [CHAT] ");
         logLines.add("[20:51:09] [Client thread/INFO]: [CHAT] ████████████████████████████");
         
+        // Game starting
+        logLines.add("[20:51:10] [Client thread/INFO]: [CHAT] The game starts in 10 seconds!");
+        logLines.add("[20:51:15] [Client thread/INFO]: [CHAT] The game starts in 5 seconds!");
+        logLines.add("[20:51:20] [Client thread/INFO]: [CHAT] The game has started!");
+        
         // Player list
         logLines.add("[20:51:12] [Client thread/INFO]: [CHAT] ONLINE: frogigog, tuumopi, c1utch_craft, Dani313, Inmorrtal300, Xatrok, PlushLuigi26, 8l0ckhead, 1xkhu, AceDart, IdkWhoWaterIs, Adryan206, Rassu2014, Ent3SuessSauer, skeertskeert, GALBINSKY1");
         
@@ -187,11 +192,13 @@ class LogFileStateTest {
         logLines.add("[19:30:15] [Client thread/INFO]: [CHAT] Sending you to mini123AB!");
         logLines.add("[19:30:20] [Client thread/INFO]: [CHAT] Player2 has joined (1/16)!");
         logLines.add("[19:30:25] [Client thread/INFO]: [CHAT] The game starts in 10 seconds!");
+        logLines.add("[19:30:28] [Client thread/INFO]: [CHAT] The game starts in 5 seconds!");
+        logLines.add("[19:30:30] [Client thread/INFO]: [CHAT] The game has started!");
         
         // Game banner
-        logLines.add("[19:30:30] [Client thread/INFO]: [CHAT] ████████████████████████████");
-        logLines.add("[19:30:30] [Client thread/INFO]: [CHAT]                                   Bed Wars");
-        logLines.add("[19:30:30] [Client thread/INFO]: [CHAT] ████████████████████████████");
+        logLines.add("[19:30:31] [Client thread/INFO]: [CHAT] ████████████████████████████");
+        logLines.add("[19:30:31] [Client thread/INFO]: [CHAT]                                   Bed Wars");
+        logLines.add("[19:30:31] [Client thread/INFO]: [CHAT] ████████████████████████████");
         
         // Game ended
         logLines.add("[19:40:00] [Client thread/INFO]: [CHAT] VICTORY!");
@@ -229,11 +236,13 @@ class LogFileStateTest {
         
         // Game start
         logLines.add("[18:00:45] [Client thread/INFO]: [CHAT] The game starts in 10 seconds!");
+        logLines.add("[18:00:50] [Client thread/INFO]: [CHAT] The game starts in 5 seconds!");
+        logLines.add("[18:00:55] [Client thread/INFO]: [CHAT] The game has started!");
         
         // Game banner
-        logLines.add("[18:00:50] [Client thread/INFO]: [CHAT] ████████████████████████████");
-        logLines.add("[18:00:50] [Client thread/INFO]: [CHAT]                                   SkyWars");
-        logLines.add("[18:00:50] [Client thread/INFO]: [CHAT] ████████████████████████████");
+        logLines.add("[18:00:56] [Client thread/INFO]: [CHAT] ████████████████████████████");
+        logLines.add("[18:00:56] [Client thread/INFO]: [CHAT]                                   SkyWars");
+        logLines.add("[18:00:56] [Client thread/INFO]: [CHAT] ████████████████████████████");
         
         // Write the log to file
         Path logFile = Paths.get("src/test/resources/logs/party_warp.log");
