@@ -15,6 +15,7 @@ import java.util.List;
 /**
  * Integration test for the LobbyTracker using real-world log scenarios
  */
+@SuppressWarnings("unused")
 class LogFileStateTest {
     
     @BeforeAll
@@ -266,29 +267,36 @@ class LogFileStateTest {
         Files.write(logFile, logLines);
     }
     
+    /**
+     * Test the bed destruction detection pattern directly
+     */
     private static void testBedDestructionPattern() {
-        // Exact log line from test file
-        String bedDestructionLine = "[CHAT] BED DESTRUCTION > Yellow Bed was bed #1,306 destroyed by 8l0ckhead!";
+        // Sample bed destruction messages to test
+        String[] bedMessages = {
+            "[CHAT] BED DESTRUCTION > Red Bed was bed #1,234 destroyed by Player1!",
+            "[CHAT] BED DESTRUCTION > Green Bed was bed #456 destroyed by Player2!",
+            "[CHAT] BED DESTRUCTION > Blue Bed was bed #7,890 destroyed by Player3!"
+        };
         
-        // Log the current pattern
-        System.out.println("Testing pattern: " + LobbyPatterns.BedWars.BED_DESTRUCTION.pattern());
-        System.out.println("Against line: " + bedDestructionLine);
+        // Test each pattern
+        LogProcessor.TrackerStateRecorder recorder = new LogProcessor.TrackerStateRecorder();
+        LobbyTracker tracker = new LobbyTracker();
+        tracker.addListener(recorder);
         
-        // Try the matcher
-        java.util.regex.Matcher matcher = LobbyPatterns.BedWars.BED_DESTRUCTION.matcher(bedDestructionLine);
-        boolean matches = matcher.find();
+        for (String msg : bedMessages) {
+            tracker.processLogLine(msg);
+        }
         
-        System.out.println("Pattern matches: " + matches);
+        // Verify the bed destruction events were recorded
+        List<String> events = recorder.getEvents();
+        long bedEvents = events.stream()
+                .filter(e -> e.contains("Bed Destroyed")).count();
         
-        if (matches) {
-            System.out.println("Group 1 (Team): " + matcher.group(1));
-            System.out.println("Group 2 (Number): " + matcher.group(2));
-            System.out.println("Group 3 (Destroyer): " + matcher.group(3));
-        } else {
-            // Create direct bed destruction event
-            System.out.println("Adding direct bed destruction event to test bed");
-            LogProcessor.TrackerStateRecorder recorder = new LogProcessor.TrackerStateRecorder();
-            recorder.onBedDestruction("Yellow", "8l0ckhead", 1306);
+        // Output results - failures will be seen in test logs
+        System.out.println("Bed pattern test detected " + bedEvents + " bed destruction events");
+        if (bedEvents != bedMessages.length) {
+            System.err.println("WARNING: Expected " + bedMessages.length + 
+                    " bed destruction events, but found " + bedEvents);
         }
     }
 } 

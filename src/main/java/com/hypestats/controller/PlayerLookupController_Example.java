@@ -3,10 +3,8 @@ package com.hypestats.controller;
 import com.hypestats.model.*;
 import javafx.scene.control.Label;
 
-/**
- * Example implementation of the controller display methods using the new stats architecture.
- * This is NOT a complete class, just examples of the display methods.
- */
+// Mark this class with SuppressWarnings since it's an example file and not meant to be used directly
+@SuppressWarnings("unused")
 public class PlayerLookupController_Example {
     
     // UI elements for Bedwars stats

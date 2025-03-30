@@ -39,24 +39,30 @@ public class HypeStatsApp extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         try {
+            // Create the scene first
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainView.fxml"));
             Parent root = loader.load();
+            Scene scene = new Scene(root, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
             
             // Position the window on the right side of the screen by default
-            // This is useful as most people would run this alongside Minecraft
             Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
             primaryStage.setX(screenBounds.getWidth() - DEFAULT_WIDTH);
             primaryStage.setY((screenBounds.getHeight() - DEFAULT_HEIGHT) / 2);
-            
-            Scene scene = new Scene(root, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
             
             String title = APP_TITLE;
             if (testMode) {
                 title += " [TEST MODE]";
             }
             primaryStage.setTitle(title);
+            
+            // Set the scene on the stage first
             primaryStage.setScene(scene);
+            
+            // Now get the controller and initialize it with host services and stage
+            com.hypestats.controller.MainController controller = loader.getController();
+            controller.setHostServices(getHostServices());
+            controller.setupStage(primaryStage);
             
             // Try to load icon if it exists
             try {

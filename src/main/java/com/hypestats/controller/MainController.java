@@ -1,6 +1,7 @@
 package com.hypestats.controller;
 
 import com.hypestats.HypeStatsApp;
+import com.hypestats.util.HotkeyManager;
 import com.hypestats.util.SettingsManager;
 import javafx.application.HostServices;
 import javafx.event.ActionEvent;
@@ -14,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import javafx.scene.image.Image;
 
 import java.awt.*;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -57,6 +60,7 @@ public class MainController {
     private HostServices hostServices;
     private PlayerLookupController playerLookupController;
     private LobbyTrackerController lobbyTrackerController;
+    private Stage primaryStage;
 
     /**
      * Initialize the controller
@@ -69,6 +73,76 @@ public class MainController {
         if (settingsManager.getApiKey() == null || settingsManager.getApiKey().isEmpty()) {
             log.info("No API key found, prompting user");
             showFirstRunDialog();
+        }
+    }
+    
+    /**
+     * Set up the hotkeys
+     * This should be called after setting the primary stage
+     */
+    public void setupHotkeys() {
+        if (primaryStage == null) {
+            log.error("Cannot set up hotkeys, primary stage is null");
+            return;
+        }
+        
+        // Add key event filter to the scene for global hotkey support
+        // We need to wait until the scene is available before adding event filters
+        if (primaryStage.getScene() == null) {
+            log.warn("Scene is not available yet, hotkeys will be set up when the scene is available");
+            
+            // Listen for scene changes and set up hotkeys when the scene becomes available
+            primaryStage.sceneProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue != null) {
+                    log.info("Scene is now available, setting up hotkeys");
+                    newValue.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
+                    registerHotkeys();
+                }
+            });
+        } else {
+            // Scene is already available, set up hotkeys now
+            primaryStage.getScene().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
+            registerHotkeys();
+        }
+    }
+    
+    /**
+     * Register all application hotkeys
+     */
+    private void registerHotkeys() {
+        // Get hotkey settings
+        String refreshLogHotkey = settingsManager.getRefreshLogHotkey();
+        
+        // Register refresh log hotkey
+        if (refreshLogHotkey != null && !refreshLogHotkey.isEmpty()) {
+            HotkeyManager.registerHotkey(refreshLogHotkey, this::triggerLogRefresh);
+            log.info("Registered refresh log hotkey: {}", refreshLogHotkey);
+        }
+    }
+    
+    /**
+     * Handle key press events for global hotkeys
+     * @param event KeyEvent
+     */
+    private void handleKeyPress(KeyEvent event) {
+        // Let the hotkey manager handle the event
+        boolean handled = HotkeyManager.handleKeyEvent(event);
+        
+        if (handled) {
+            log.debug("Hotkey triggered: {}", event);
+        }
+    }
+    
+    /**
+     * Triggered by the refresh log hotkey
+     */
+    private void triggerLogRefresh() {
+        // Switch to the lobby tracker tab if not already there
+        mainTabPane.getSelectionModel().select(lobbyTrackerTab);
+        
+        // Trigger the refresh action if the controller is available
+        if (lobbyTrackerController != null) {
+            lobbyTrackerController.refreshLogFile(null);
         }
     }
 
@@ -108,6 +182,10 @@ public class MainController {
             
             // Set callback for when settings are saved
             controller.setOnSaveCallback(() -> {
+                // Re-register hotkeys with updated settings
+                HotkeyManager.clearHotkeys();
+                registerHotkeys();
+                
                 // Refresh player lookup controller if needed
                 if (playerLookupController != null) {
                     playerLookupController.initialize();
@@ -165,6 +243,14 @@ public class MainController {
      */
     public void setLobbyTrackerController(LobbyTrackerController controller) {
         this.lobbyTrackerController = controller;
+        
+        // Initialize the lobby tracker controller with the API service if not already done
+        if (controller != null) {
+            // Create and inject the HypixelAPIService
+            com.hypestats.services.HypixelAPIService apiService = 
+                new com.hypestats.services.HypixelAPIService(settingsManager.getApiKey());
+            controller.setApiService(apiService);
+        }
     }
 
     /**
@@ -245,9 +331,23 @@ public class MainController {
      * @param stage JavaFX primary stage
      */
     public void setupStage(Stage stage) {
+        // Store the primary stage
+        this.primaryStage = stage;
+        
         // Set window title and icon
         stage.setTitle("HypeStats - Hypixel Statistics Companion");
-        stage.getIcons().add(new Image(getClass().getResourceAsStream("/images/icon.png")));
+        
+        // Try to load icon safely with null check
+        try {
+            InputStream iconStream = getClass().getResourceAsStream("/images/icon.png");
+            if (iconStream != null) {
+                stage.getIcons().add(new Image(iconStream));
+            } else {
+                log.warn("Icon resource not found: /images/icon.png");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load application icon", e);
+        }
         
         // Set minimum window size
         stage.setMinWidth(900);
@@ -255,5 +355,16 @@ public class MainController {
         
         // Automatically save settings on window close
         stage.setOnCloseRequest(event -> SettingsManager.getInstance().saveSettings());
+        
+        // Set up hotkeys after the scene is available
+        setupHotkeys();
+    }
+
+    /**
+     * Set the primary stage reference
+     * @param stage Primary stage
+     */
+    public void setPrimaryStage(Stage stage) {
+        this.primaryStage = stage;
     }
 } 

@@ -544,4 +544,37 @@
     font-size: 14px;
     -fx-text-fill: #BBBBBB;
     color: #BBBBBB;
+}
+
+/* Add the following authenticity styling classes */
+
+/* Authenticity indicators */
+.auth-low {
+    -fx-background-color: rgba(50, 200, 50, 0.2);
+    -fx-text-fill: #006400;
+}
+
+.auth-medium-low {
+    -fx-background-color: rgba(180, 220, 40, 0.2);
+    -fx-text-fill: #656000;
+}
+
+.auth-medium-high {
+    -fx-background-color: rgba(240, 150, 50, 0.2);
+    -fx-text-fill: #804000;
+}
+
+.auth-high {
+    -fx-background-color: rgba(240, 80, 80, 0.2);
+    -fx-text-fill: #800000;
+}
+
+.lobby-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #3399ff;
+}
+
+.client-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #33cc33;
 } 

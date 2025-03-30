@@ -23,6 +23,7 @@ import java.util.function.Consumer;
  * Service for interacting with the Hypixel API.
  */
 @Slf4j
+@SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class HypixelAPIService {
     private static final String HYPIXEL_API_URL = "https://api.hypixel.net";
     private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
@@ -211,8 +212,9 @@ public class HypixelAPIService {
     }
     
     /**
-     * Process the player data from the API response
+     * Process player data from the API response
      */
+    @SuppressWarnings({"unused", "UnusedLocalVariable"})
     private PlayerData processPlayerData(JsonNode playerNode, String playerName, UUID uuid) {
         PlayerData.PlayerDataBuilder builder = PlayerData.builder()
                 .playerName(playerName)
@@ -335,9 +337,6 @@ public class HypixelAPIService {
             expRemaining -= expRequired;
             level++;
         }
-        
-        // Calculate prestige levels (100+)
-        int prestige = level / 100;
         
         return level;
     }

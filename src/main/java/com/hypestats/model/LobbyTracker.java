@@ -26,7 +26,6 @@ public class LobbyTracker {
     @Getter
     private String currentLobby = null;
     
-    private String lastDetectedLobby = null;
     private Instant lastLobbyChange = Instant.now();
 
     @Getter
@@ -87,7 +86,6 @@ public class LobbyTracker {
      */
     private void handleLobbyChange(String newLobby) {
         log.info("Detected lobby change to: {}", newLobby);
-        lastDetectedLobby = newLobby;
         lastLobbyChange = Instant.now();
         
         // Clear player tracking data when switching lobbies
@@ -448,7 +446,6 @@ public class LobbyTracker {
         gameState = GameState.UNKNOWN;
         gameMode = null;
         currentLobby = null;
-        lastDetectedLobby = null;
         lastLobbyChange = Instant.now();
         playersInLobby.clear();
         playerDisplayNames.clear();

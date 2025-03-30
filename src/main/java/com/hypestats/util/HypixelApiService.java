@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service for interacting with the Hypixel API
@@ -33,11 +36,27 @@ import java.util.HashMap;
 public class HypixelApiService {
     private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
     private static final String HYPIXEL_API_URL = "https://api.hypixel.net/player";
-    private static final int MAX_REQUESTS_PER_MINUTE = 110; // Hypixel allows 120/min but we use 110 to be safe
+    
+    // Hypixel rate limit is 300 requests per 5 minutes (or 1 req per second)
+    private static final int MAX_REQUESTS_PER_5_MIN = 300;
+    private static final long RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+    
+    // Safety margin - we'll use 95% of the actual limit to be safe
+    private static final int SAFETY_BUFFER = 15; // Keep 15 requests as buffer
+    private static final int EFFECTIVE_LIMIT = MAX_REQUESTS_PER_5_MIN - SAFETY_BUFFER;
+    
+    // Static rate limiting for the entire application
+    private static final Queue<Long> requestTimestamps = new LinkedList<>();
+    private static final AtomicInteger requestsInProgressCount = new AtomicInteger(0);
+    private static final Object rateLimitLock = new Object();
+    
+    // Cache for player stats to avoid duplicate requests
+    private static final Map<String, PlayerStats> playerStatsCache = new HashMap<>();
+    private static final Map<String, Long> cacheTimestamps = new HashMap<>();
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute cache
     
     private final OkHttpClient client;
     private final Gson gson;
-    private final List<Long> requestTimestamps;
     private Random random = new Random();
     
     public HypixelApiService() {
@@ -46,11 +65,10 @@ public class HypixelApiService {
                 .readTimeout(15, TimeUnit.SECONDS)
                 .build();
         this.gson = new Gson();
-        this.requestTimestamps = new ArrayList<>();
     }
     
     /**
-     * Get player stats from Hypixel API
+     * Get player stats from Hypixel API with caching
      * @param username Minecraft username
      * @param apiKey Hypixel API key
      * @return PlayerStats object
@@ -58,6 +76,18 @@ public class HypixelApiService {
      * @throws ApiException if there's an API-level error (rate limit, invalid key, etc.)
      */
     public PlayerStats getPlayerStats(String username, String apiKey) throws IOException, ApiException {
+        // First check cache to avoid unnecessary API calls
+        String cacheKey = username.toLowerCase();
+        
+        // Check if we have a cached version
+        if (playerStatsCache.containsKey(cacheKey)) {
+            Long timestamp = cacheTimestamps.get(cacheKey);
+            if (timestamp != null && System.currentTimeMillis() - timestamp < CACHE_TTL_MS) {
+                log.debug("Using cached player stats for {}", username);
+                return playerStatsCache.get(cacheKey);
+            }
+        }
+        
         // Special handling for test mode
         if (HypeStatsApp.isTestMode()) {
             try {
@@ -84,12 +114,22 @@ public class HypixelApiService {
             }
             
             DevLogger.log("API: Returning mock data for " + username);
-            return generateMockPlayerStats(username);
+            PlayerStats stats = generateMockPlayerStats(username);
+            
+            // Cache the results
+            playerStatsCache.put(cacheKey, stats);
+            cacheTimestamps.put(cacheKey, System.currentTimeMillis());
+            
+            return stats;
         }
         
         // Normal operation
         try {
-            // Implement rate limiting
+            // Count this request as in progress
+            requestsInProgressCount.incrementAndGet();
+            
+            // Check rate limit before making the request
+            // This will throw an exception if the rate limit would be exceeded
             enforceRateLimit();
             
             // First, get the UUID from the username via Mojang API
@@ -127,7 +167,13 @@ public class HypixelApiService {
                     throw new ApiException("Player has never played on Hypixel");
                 }
                 
-                return parsePlayerStats(jsonResponse.getAsJsonObject("player"), username, uuid);
+                PlayerStats stats = parsePlayerStats(jsonResponse.getAsJsonObject("player"), username, uuid);
+                
+                // Cache the results
+                playerStatsCache.put(cacheKey, stats);
+                cacheTimestamps.put(cacheKey, System.currentTimeMillis());
+                
+                return stats;
             }
         } catch (IOException | ApiException e) {
             log.error("API Request failed: {}", e.getMessage());
@@ -135,6 +181,119 @@ public class HypixelApiService {
                 DevLogger.log("API: Request failed: " + e.getMessage(), e);
             }
             throw e;
+        } finally {
+            // Decrement the in-progress count
+            requestsInProgressCount.decrementAndGet();
+        }
+    }
+    
+    /**
+     * Check if the API service can handle more requests
+     * @return true if there's capacity for more requests, false otherwise
+     */
+    public boolean canMakeRequests() {
+        synchronized(rateLimitLock) {
+            long now = System.currentTimeMillis();
+            
+            // Remove timestamps older than the rate limit window
+            while (!requestTimestamps.isEmpty() && now - requestTimestamps.peek() > RATE_LIMIT_WINDOW_MS) {
+                requestTimestamps.poll();
+            }
+            
+            // Count in-flight requests too
+            int totalRequests = requestTimestamps.size() + requestsInProgressCount.get();
+            
+            // Return true if we're below the effective limit
+            return totalRequests < EFFECTIVE_LIMIT;
+        }
+    }
+    
+    /**
+     * Get current API request count in the rate limit window
+     * @return number of requests in the current window
+     */
+    public int getCurrentRequestCount() {
+        synchronized(rateLimitLock) {
+            long now = System.currentTimeMillis();
+            
+            // Remove timestamps older than the rate limit window
+            while (!requestTimestamps.isEmpty() && now - requestTimestamps.peek() > RATE_LIMIT_WINDOW_MS) {
+                requestTimestamps.poll();
+            }
+            
+            return requestTimestamps.size() + requestsInProgressCount.get();
+        }
+    }
+    
+    /**
+     * Get remaining API requests in the current window
+     * @return number of requests remaining
+     */
+    public int getRemainingRequests() {
+        return EFFECTIVE_LIMIT - getCurrentRequestCount();
+    }
+    
+    /**
+     * Enforce Hypixel API rate limit
+     * @throws ApiException if rate limit is exceeded
+     */
+    private synchronized void enforceRateLimit() throws ApiException {
+        synchronized(rateLimitLock) {
+            long now = System.currentTimeMillis();
+            
+            // Remove timestamps older than the rate limit window
+            while (!requestTimestamps.isEmpty() && now - requestTimestamps.peek() > RATE_LIMIT_WINDOW_MS) {
+                requestTimestamps.poll();
+            }
+            
+            // Count in-flight requests too
+            int totalRequests = requestTimestamps.size() + requestsInProgressCount.get();
+            
+            // Check if we've exceeded the rate limit (including safety buffer)
+            if (totalRequests >= EFFECTIVE_LIMIT) {
+                // If we're at the limit, calculate wait time until next slot opens
+                if (!requestTimestamps.isEmpty()) {
+                    long oldestTimestamp = requestTimestamps.peek();
+                    long waitTimeMs = (oldestTimestamp + RATE_LIMIT_WINDOW_MS) - now;
+                    
+                    String message = String.format(
+                        "Rate limit reached (%d/%d requests). Try again in %d seconds.", 
+                        totalRequests, MAX_REQUESTS_PER_5_MIN, (waitTimeMs / 1000) + 1
+                    );
+                    throw new ApiException(message);
+                } else {
+                    throw new ApiException("Rate limit exceeded. Please wait before making more requests.");
+                }
+            }
+            
+            // Add the current timestamp
+            requestTimestamps.add(now);
+        }
+    }
+    
+    /**
+     * Get player UUID from Mojang API
+     * @param username Minecraft username
+     * @return UUID of the player, or null if player not found
+     * @throws IOException if API request fails
+     */
+    private String getPlayerUuid(String username) throws IOException {
+        Request request = new Request.Builder()
+                .url(MOJANG_API_URL + username)
+                .build();
+        
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                if (response.code() == 404) {
+                    return null; // Player not found
+                }
+                throw new IOException("Mojang API error: " + response.code());
+            }
+            
+            String responseBody = response.body().string();
+            JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
+            
+            return jsonResponse.get("id").getAsString();
         }
     }
     
@@ -323,51 +482,6 @@ public class HypixelApiService {
         stats.calculateTopStats();
         
         return stats;
-    }
-    
-    /**
-     * Get player UUID from Mojang API
-     * @param username Minecraft username
-     * @return UUID of the player, or null if player not found
-     * @throws IOException if API request fails
-     */
-    private String getPlayerUuid(String username) throws IOException {
-        Request request = new Request.Builder()
-                .url(MOJANG_API_URL + username)
-                .build();
-        
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                if (response.code() == 404) {
-                    return null; // Player not found
-                }
-                throw new IOException("Mojang API error: " + response.code());
-            }
-            
-            String responseBody = response.body().string();
-            JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
-            
-            return jsonResponse.get("id").getAsString();
-        }
-    }
-    
-    /**
-     * Enforce Hypixel API rate limit
-     * @throws ApiException if rate limit is exceeded
-     */
-    private synchronized void enforceRateLimit() throws ApiException {
-        long now = System.currentTimeMillis();
-        
-        // Remove timestamps older than 1 minute
-        requestTimestamps.removeIf(timestamp -> now - timestamp > 60000);
-        
-        // Check if we've exceeded the rate limit
-        if (requestTimestamps.size() >= MAX_REQUESTS_PER_MINUTE) {
-            throw new ApiException("Rate limit exceeded. Please wait before making more requests.");
-        }
-        
-        // Add the current timestamp
-        requestTimestamps.add(now);
     }
     
     /**

@@ -29,8 +29,9 @@
                 <TextField fx:id="logPathField" HBox.hgrow="ALWAYS" promptText="Path to latest.log"/>
                 <Button fx:id="browseButton" text="Browse" onAction="#browseLogFile"/>
             </HBox>
-            <HBox alignment="CENTER_RIGHT">
-                <Button fx:id="defaultPathButton" text="Use Default Path" onAction="#useDefaultPath" styleClass="text-button"/>
+            <HBox alignment="CENTER" spacing="10">
+                <Button fx:id="autoDetectButton" text="Auto-Detect" onAction="#autoDetectLogFile" styleClass="primary-button"/>
+                <Button fx:id="defaultPathButton" text="Use Most Recent" onAction="#useDefaultPath" styleClass="text-button"/>
             </HBox>
         </VBox>
         
@@ -87,7 +88,9 @@
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="Players in Lobby" styleClass="section-header"/>
             <Pane HBox.hgrow="ALWAYS"/>
-            <Label fx:id="playerCountLabel" text="0 players" styleClass="stat-label"/>
+            <Label fx:id="currentClientLabel" text="Client: Unknown" styleClass="client-label"/>
+            <Label fx:id="currentLobbyLabel" text="Not connected" styleClass="lobby-label"/>
+            <Label fx:id="playerCountLabel" text="Players: 0" styleClass="stat-label"/>
         </HBox>
         
         <Separator>
@@ -98,13 +101,14 @@
         
         <TableView fx:id="playerTable" VBox.vgrow="ALWAYS">
             <columns>
-                <TableColumn fx:id="usernameColumn" text="Username" prefWidth="150"/>
-                <TableColumn fx:id="levelColumn" text="Level" prefWidth="80"/>
-                <TableColumn fx:id="winsColumn" text="Wins" prefWidth="80"/>
-                <TableColumn fx:id="wlRatioColumn" text="W/L" prefWidth="80"/>
-                <TableColumn fx:id="kdRatioColumn" text="K/D" prefWidth="80"/>
-                <TableColumn fx:id="finalKdRatioColumn" text="Final K/D" prefWidth="100"/>
-                <TableColumn fx:id="statusColumn" text="Status" prefWidth="150"/>
+                <TableColumn fx:id="usernameColumn" text="Username" prefWidth="120"/>
+                <TableColumn fx:id="levelColumn" text="Level" prefWidth="60"/>
+                <TableColumn fx:id="winsColumn" text="Wins" prefWidth="60"/>
+                <TableColumn fx:id="wlRatioColumn" text="W/L" prefWidth="60"/>
+                <TableColumn fx:id="kdRatioColumn" text="K/D" prefWidth="60"/>
+                <TableColumn fx:id="finalKdRatioColumn" text="Final K/D" prefWidth="80"/>
+                <TableColumn fx:id="authenticityColumn" text="Authenticity" prefWidth="110"/>
+                <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
             </columns>
         </TableView>
         

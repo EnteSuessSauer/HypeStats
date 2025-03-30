@@ -18,6 +18,10 @@ public class SettingsManager {
     private static final String API_KEY = "hypixel.api.key";
     private static final String LOG_PATH = "minecraft.log.path";
     
+    // Hotkey settings
+    private static final String HOTKEY_REFRESH_LOG = "hotkey.refresh.log";
+    private static final String DEFAULT_HOTKEY_REFRESH_LOG = "ctrl+r";
+    
     private final Properties properties;
     private final File settingsFile;
     
@@ -50,6 +54,9 @@ public class SettingsManager {
         // Load settings from file
         settingsFile = settingsDir.resolve(SETTINGS_FILE).toFile();
         loadSettings();
+        
+        // Set defaults for any missing settings
+        setDefaultsIfMissing();
     }
     
     /**
@@ -63,6 +70,16 @@ public class SettingsManager {
             } catch (IOException e) {
                 log.error("Failed to load settings from {}", settingsFile, e);
             }
+        }
+    }
+    
+    /**
+     * Set defaults for any missing settings
+     */
+    private void setDefaultsIfMissing() {
+        // Set default hotkeys if not already set
+        if (!hasProperty(HOTKEY_REFRESH_LOG)) {
+            properties.setProperty(HOTKEY_REFRESH_LOG, DEFAULT_HOTKEY_REFRESH_LOG);
         }
     }
     
@@ -113,6 +130,23 @@ public class SettingsManager {
     }
     
     /**
+     * Get the hotkey for refreshing the log file
+     * @return Hotkey string in format like "ctrl+r"
+     */
+    public String getRefreshLogHotkey() {
+        return properties.getProperty(HOTKEY_REFRESH_LOG, DEFAULT_HOTKEY_REFRESH_LOG);
+    }
+    
+    /**
+     * Set the hotkey for refreshing the log file
+     * @param hotkeyString Hotkey string in format like "ctrl+r"
+     */
+    public void setRefreshLogHotkey(String hotkeyString) {
+        properties.setProperty(HOTKEY_REFRESH_LOG, hotkeyString);
+        saveSettings();
+    }
+    
+    /**
      * Check if the settings contain a value for the specified key
      * @param key Key to check
      * @return true if the key exists and has a non-empty value, false otherwise
@@ -126,6 +160,13 @@ public class SettingsManager {
      * @return Default log file path
      */
     public static String getDefaultLogPath() {
+        // Try to find the most recent log file first
+        MinecraftClientLogFinder.LogFileInfo mostRecent = MinecraftClientLogFinder.findMostRecentLogFile();
+        if (mostRecent != null) {
+            return mostRecent.getFilePath();
+        }
+        
+        // Fall back to the standard vanilla Minecraft path
         String os = System.getProperty("os.name").toLowerCase();
         String userHome = System.getProperty("user.home");
         

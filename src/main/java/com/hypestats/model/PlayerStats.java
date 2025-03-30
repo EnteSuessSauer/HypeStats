@@ -437,4 +437,12 @@ public class PlayerStats {
     public boolean hasSocialLinks() {
         return !socialLinks.isEmpty();
     }
+
+    /**
+     * Gets the number of friends the player has
+     * @return The number of friends, or 0 if not set
+     */
+    public int getFriendsCount() {
+        return friendsCount;
+    }
 } 

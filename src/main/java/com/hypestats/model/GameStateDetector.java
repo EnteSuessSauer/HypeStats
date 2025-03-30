@@ -49,14 +49,6 @@ public class GameStateDetector {
             "SENDING TO LIMBO", "QUEUE: ", "LIMBO", "HUB", "MAIN LOBBY"
     ));
     
-    // Keywords for player tracking
-    private static final Set<String> PLAYER_TRACKING_KEYWORDS = new HashSet<>(Arrays.asList(
-            "HAS JOINED", "HAS QUIT", "JOINED THE GAME", "LEFT THE GAME", 
-            "ONLINE:", "PLAYERS:", "JOINED (", "/", "PLAYER LIST", 
-            "FELL INTO THE VOID", "WAS KILLED BY", "WAS SHOT BY", "WAS SLAIN BY", 
-            "FINAL KILL", "DIED"
-    ));
-    
     /**
      * Determine if a log line indicates a game mode
      * @param logLine The log line to check

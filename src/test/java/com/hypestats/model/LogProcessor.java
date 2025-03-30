@@ -284,5 +284,50 @@ public class LogProcessor {
             bedDestructions.add(description);
             recordEvent("Bed Destroyed: " + description);
         }
+        
+        /**
+         * Get the list of all recorded events
+         * @return List of event strings
+         */
+        public List<String> getEvents() {
+            return events;
+        }
+        
+        /**
+         * Get a specific event by index
+         * @param index Event index
+         * @return The event string or null if index is out of bounds
+         */
+        public String getEvent(int index) {
+            if (index >= 0 && index < events.size()) {
+                return events.get(index);
+            }
+            return null;
+        }
+        
+        /**
+         * Check if an event occurred at a specific index
+         * @param index The position to check
+         * @return true if an event exists at the index, false otherwise
+         */
+        public boolean getEvents(int index) {
+            return index >= 0 && index < events.size();
+        }
+        
+        /**
+         * Get the currently detected game mode
+         * @return The game mode name or null if not detected
+         */
+        public String getGameMode() {
+            return gameMode;
+        }
+        
+        /**
+         * Get the player's team
+         * @return The team name or empty string if not detected
+         */
+        public String getTeam() {
+            return playerTeams.values().stream().findFirst().orElse("");
+        }
     }
 } 

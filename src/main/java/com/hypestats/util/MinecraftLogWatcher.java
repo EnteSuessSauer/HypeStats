@@ -71,6 +71,9 @@ public class MinecraftLogWatcher {
         "VICTORY! {PLAYER} team wins!"
     };
     
+    @SuppressWarnings("unused")
+    private long timestamp; // Timestamp is used for tracking when log lines were processed
+    
     /**
      * Create a new MinecraftLogWatcher
      * @param logFilePath Path to the Minecraft log file

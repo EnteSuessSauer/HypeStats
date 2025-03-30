@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class LobbyPatternsTest {
+// This is a test class, unused imports may be needed for test setup
+@SuppressWarnings("unused")
+public class LobbyPatternsTest {
 
     @Test
     void testLobbyNavigationPatterns() {

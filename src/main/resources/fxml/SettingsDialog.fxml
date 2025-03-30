@@ -18,32 +18,56 @@
     
     <Label text="Settings" styleClass="header-label"/>
     
-    <TitledPane text="Hypixel API Key" expanded="true">
-        <VBox spacing="10">
-            <Label text="Enter your Hypixel API key to access player statistics." wrapText="true"/>
-            <TextField fx:id="apiKeyField" promptText="Enter Hypixel API key"/>
-            
-            <TitledPane text="How to get your API key" expanded="false">
-                <VBox spacing="5">
-                    <Label text="1. Visit the Hypixel Developer Dashboard (developer.hypixel.net)" wrapText="true"/>
-                    <Label text="2. Log in using your Hypixel forums account" wrapText="true"/>
-                    <Label text="3. Click 'Create Development Key' to enable application creation" wrapText="true"/>
-                    <Label text="4. Create a new 'Personal API Key' application and fill out the form" wrapText="true"/>
-                    <Label text="5. Once approved, copy the API key and paste it above" wrapText="true"/>
-                    <Label text="6. Keep your API key private and never share it" wrapText="true" styleClass="status-warning"/>
-                </VBox>
-            </TitledPane>
-        </VBox>
-    </TitledPane>
-    
-    <TitledPane text="Application Settings" expanded="true">
-        <VBox spacing="10">
-            <CheckBox fx:id="startMaximizedCheckbox" text="Start maximized"/>
-            <CheckBox fx:id="autoCheckUpdatesCheckbox" text="Automatically check for updates"/>
-        </VBox>
-    </TitledPane>
-    
-    <Pane VBox.vgrow="ALWAYS"/>
+    <TabPane VBox.vgrow="ALWAYS">
+        <Tab text="General" closable="false">
+            <VBox spacing="15">
+                <TitledPane text="Hypixel API Key" expanded="true">
+                    <VBox spacing="10">
+                        <Label text="Enter your Hypixel API key to access player statistics." wrapText="true"/>
+                        <TextField fx:id="apiKeyField" promptText="Enter Hypixel API key"/>
+                        
+                        <TitledPane text="How to get your API key" expanded="false">
+                            <VBox spacing="5">
+                                <Label text="1. Visit the Hypixel Developer Dashboard (developer.hypixel.net)" wrapText="true"/>
+                                <Label text="2. Log in using your Hypixel forums account" wrapText="true"/>
+                                <Label text="3. Click 'Create Development Key' to enable application creation" wrapText="true"/>
+                                <Label text="4. Create a new 'Personal API Key' application and fill out the form" wrapText="true"/>
+                                <Label text="5. Once approved, copy the API key and paste it above" wrapText="true"/>
+                                <Label text="6. Keep your API key private and never share it" wrapText="true" styleClass="status-warning"/>
+                            </VBox>
+                        </TitledPane>
+                    </VBox>
+                </TitledPane>
+                
+                <TitledPane text="Application Settings" expanded="true">
+                    <VBox spacing="10">
+                        <CheckBox fx:id="startMaximizedCheckbox" text="Start maximized"/>
+                        <CheckBox fx:id="autoCheckUpdatesCheckbox" text="Automatically check for updates"/>
+                    </VBox>
+                </TitledPane>
+            </VBox>
+        </Tab>
+        
+        <Tab text="Hotkeys" closable="false">
+            <VBox spacing="15">
+                <TitledPane text="Log Watcher Hotkeys" expanded="true">
+                    <VBox spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="Refresh Log File:" minWidth="120"/>
+                            <TextField fx:id="refreshLogHotkeyField" promptText="e.g. ctrl+r" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="refreshLogHotkeyButton" text="Set" onAction="#handleSetRefreshLogHotkey"/>
+                        </HBox>
+                        <Label text="To set a hotkey, click the 'Set' button and press the desired key combination." wrapText="true"/>
+                        <Label text="Use modifiers like Ctrl, Alt, Shift in combination with other keys." wrapText="true"/>
+                        <Label text="Changes to hotkeys will take effect after saving and restarting the application." 
+                               wrapText="true" styleClass="status-warning"/>
+                    </VBox>
+                </TitledPane>
+                
+                <Label text="Note: Hotkeys work globally when the application is focused." wrapText="true"/>
+            </VBox>
+        </Tab>
+    </TabPane>
     
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button fx:id="cancelButton" text="Cancel" onAction="#handleCancel" prefWidth="100"/>
