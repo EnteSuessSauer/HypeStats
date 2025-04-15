@@ -40,7 +40,8 @@ def create_default_config() -> None:
     }
     
     config['Minecraft'] = {
-        'LOG_FILE_PATH': 'auto'
+        'LOG_FILE_PATH': 'auto',
+        'POLLING_INTERVAL': '2'  # Default to 2 seconds
     }
     
     with open(CONFIG_FILE, 'w') as config_file:
@@ -166,4 +167,40 @@ def save_config_object(config: configparser.ConfigParser) -> None:
         config: The configuration object to save.
     """
     with open(CONFIG_FILE, 'w') as config_file:
-        config.write(config_file) 
+        config.write(config_file)
+
+def get_polling_interval() -> int:
+    """
+    Get the log file polling interval from configuration.
+    
+    Returns:
+        int: The polling interval in seconds (default: 2).
+    """
+    config = load_config()
+    
+    if 'Minecraft' not in config or 'POLLING_INTERVAL' not in config['Minecraft']:
+        # If not set, use default and save it
+        interval = 2
+        save_config("Minecraft", "POLLING_INTERVAL", str(interval))
+        return interval
+    
+    try:
+        interval = int(config['Minecraft']['POLLING_INTERVAL'])
+        # Ensure reasonable bounds (1-10 seconds)
+        interval = max(1, min(10, interval))
+        return interval
+    except ValueError:
+        # If not a valid number, reset to default
+        save_config("Minecraft", "POLLING_INTERVAL", "2")
+        return 2
+
+def set_polling_interval(seconds: int) -> None:
+    """
+    Set the log file polling interval.
+    
+    Args:
+        seconds: The polling interval in seconds (will be clamped to 1-10).
+    """
+    # Ensure reasonable bounds (1-10 seconds)
+    interval = max(1, min(10, seconds))
+    save_config("Minecraft", "POLLING_INTERVAL", str(interval)) 

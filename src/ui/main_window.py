@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
     QLabel, QStatusBar, QHeaderView, QMessageBox, QDialog,
     QFormLayout, QDialogButtonBox, QFileDialog, QComboBox,
-    QTabWidget, QGridLayout, QGroupBox, QTextBrowser
+    QTabWidget, QGridLayout, QGroupBox, QTextBrowser, QSpinBox
 )
 
 from src.api_client import ApiClient
@@ -406,6 +406,36 @@ class SettingsDialog(QDialog):
         log_file_form.addRow("Log File Path:", path_layout)
         log_file_layout.addLayout(log_file_form)
         
+        # Add polling interval settings
+        polling_form = QFormLayout()
+        
+        # Create spin box for poll interval (1-10 seconds)
+        self.poll_interval_spin = QSpinBox()
+        self.poll_interval_spin.setMinimum(1)
+        self.poll_interval_spin.setMaximum(10)
+        self.poll_interval_spin.setSuffix(" seconds")
+        
+        # Get current polling interval
+        try:
+            current_interval = config.get_polling_interval()
+            self.poll_interval_spin.setValue(current_interval)
+        except:
+            self.poll_interval_spin.setValue(2)  # Default to 2 seconds
+            
+        polling_form.addRow("Log polling interval:", self.poll_interval_spin)
+        
+        # Add explanation of polling
+        polling_explanation = QLabel(
+            "The polling interval determines how frequently the app checks the log file for changes. "
+            "A shorter interval (1-2 seconds) will detect players faster but use more resources. "
+            "A longer interval (5-10 seconds) will use fewer resources but may be slower to detect players."
+        )
+        polling_explanation.setWordWrap(True)
+        polling_explanation.setStyleSheet("color: gray; font-size: 9pt;")
+        
+        log_file_layout.addLayout(polling_form)
+        log_file_layout.addWidget(polling_explanation)
+        
         # Test log file button
         self.test_log_file_button = QPushButton("Test Log File")
         self.test_log_file_button.clicked.connect(self._test_log_file)
@@ -521,6 +551,10 @@ class SettingsDialog(QDialog):
         log_path = self.log_path_input.text().strip()
         if log_path:
             config.save_config("Minecraft", "LOG_FILE_PATH", log_path)
+            
+        # Save polling interval
+        poll_interval = self.poll_interval_spin.value()
+        config.set_polling_interval(poll_interval)
         
         # Show a message that settings have been saved
         QMessageBox.information(self, "Settings Saved", "Your settings have been saved. Some changes may require restarting the application.")
@@ -734,6 +768,12 @@ class MainWindow(QMainWindow):
         
         lobby_layout.addStretch()
         
+        # Add refresh button to manually check log file
+        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button.setToolTip("Manually check the log file for player updates")
+        self.refresh_button.clicked.connect(self.refresh_log)
+        lobby_layout.addWidget(self.refresh_button)
+        
         self.monitor_toggle_button = QPushButton("Start Monitoring")
         self.monitor_toggle_button.clicked.connect(self.toggle_monitoring)
         lobby_layout.addWidget(self.monitor_toggle_button)
@@ -787,10 +827,23 @@ class MainWindow(QMainWindow):
             except:
                 pass
             
-            # Restart log monitor if log file path changed
+            # Restart log monitor if log file path or polling interval changed
             try:
+                restart_needed = False
+                
+                # Check if log file path changed
                 new_log_path = config.get_log_file_path()
                 if self.log_monitor and hasattr(self.log_monitor, 'log_file_path') and new_log_path != self.log_monitor.log_file_path:
+                    restart_needed = True
+                
+                # Check if polling interval changed
+                new_poll_interval = config.get_polling_interval()
+                if self.log_monitor and hasattr(self.log_monitor, 'poll_interval') and new_poll_interval != self.log_monitor.poll_interval:
+                    restart_needed = True
+                
+                # Restart if needed
+                if restart_needed and self.log_monitor.running:
+                    self.status_bar.showMessage("Restarting log monitor with new settings...")
                     self.stop_monitoring()
                     self.log_monitor = LogMonitor(self.handle_lobby_update)
                     self.start_monitoring()
@@ -1128,8 +1181,9 @@ class MainWindow(QMainWindow):
             username_item = QTableWidgetItem(player.get('username', 'Unknown'))
             self.table.setItem(row, 1, username_item)
             
-            # Stars
-            stars_item = QTableWidgetItem(str(player.get('bedwars_stars', 0)))
+            # Stars - divide by 10 to show as decimal
+            stars_value = player.get('bedwars_stars', 0)
+            stars_item = QTableWidgetItem(f"{stars_value/10:.1f}")
             self.table.setItem(row, 2, stars_item)
             
             # FKDR
@@ -1189,4 +1243,19 @@ class MainWindow(QMainWindow):
             self.worker_thread.wait()
         
         # Accept the event
-        event.accept() 
+        event.accept()
+
+    def refresh_log(self) -> None:
+        """
+        Manually force the log monitor to check the log file.
+        """
+        if self.log_monitor and self.log_monitor.running:
+            self.status_bar.showMessage("Manually refreshing lobby data...")
+            self.log_monitor.force_check()
+        else:
+            self.status_bar.showMessage("Log monitoring is not active. Start monitoring first.")
+            QMessageBox.information(
+                self,
+                "Monitoring Inactive",
+                "Log monitoring is not active. Please start monitoring first."
+            ) 

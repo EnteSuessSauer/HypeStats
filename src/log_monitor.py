@@ -5,6 +5,7 @@ Monitors Minecraft log file for Hypixel /who command output.
 import os
 import re
 import time
+import threading
 from typing import Callable, List, Optional, Set
 
 from watchdog.observers import Observer
@@ -39,6 +40,7 @@ class LogEventHandler(FileSystemEventHandler):
 class LogMonitor:
     """
     Monitor the Minecraft log file for Hypixel /who command output.
+    Uses a hybrid approach with file system events and periodic polling.
     """
     
     def __init__(self, callback: Callable[[List[str]], None]) -> None:
@@ -52,7 +54,10 @@ class LogMonitor:
         self.callback = callback
         self.last_position = 0
         self.observer = None
+        self.poll_thread = None
         self.running = False
+        self.poll_interval = config.get_polling_interval()  # Get interval from config
+        self.last_successful_read = 0  # Timestamp of last successful read
         
         # Regular expressions for parsing /who command output
         # Example: "ONLINE: Player1, Player2, Player3"
@@ -65,10 +70,12 @@ class LogMonitor:
             except OSError as e:
                 print(f"Error getting file size: {str(e)}")
                 self.last_position = 0
+                
+        print(f"Log monitor initialized with polling interval: {self.poll_interval} seconds")
     
     def start(self) -> None:
         """
-        Start monitoring the log file.
+        Start monitoring the log file using both file system events and polling.
         """
         if self.running:
             return
@@ -84,7 +91,26 @@ class LogMonitor:
         self.observer.schedule(event_handler, log_dir, recursive=False)
         self.observer.start()
         
+        # Start a polling thread as a backup mechanism for buffered writes
+        self.poll_thread = threading.Thread(target=self._poll_log_file, daemon=True)
+        self.poll_thread.start()
+        
         print(f"Started monitoring log file: {self.log_file_path}")
+    
+    def _poll_log_file(self) -> None:
+        """
+        Periodically poll the log file for changes, regardless of file system events.
+        This helps catch buffered writes that might not trigger a file system event.
+        """
+        while self.running:
+            try:
+                # Force a read of the log file
+                self._process_new_lines(force_read=True)
+            except Exception as e:
+                print(f"Error polling log file: {str(e)}")
+            
+            # Wait before polling again
+            time.sleep(self.poll_interval)
     
     def stop(self) -> None:
         """
@@ -95,19 +121,35 @@ class LogMonitor:
         
         self.running = False
         
+        # Stop the observer
         if self.observer:
             self.observer.stop()
             self.observer.join()
             self.observer = None
         
+        # The poll_thread will stop when self.running becomes False
+        # We don't need to join it as it's a daemon thread
+        
         print("Stopped monitoring log file")
     
-    def _process_new_lines(self) -> None:
+    def force_check(self) -> None:
+        """
+        Manually force a check of the log file.
+        Can be called when the user wants to refresh the player list.
+        """
+        if self.running:
+            self._process_new_lines(force_read=True)
+    
+    def _process_new_lines(self, force_read: bool = False) -> None:
         """
         Process new lines in the log file.
         Extracts player names from /who command output and calls the callback.
+        
+        Args:
+            force_read: Whether to force reading the file even if it doesn't appear to have changed.
         """
         try:
+            # Check if the file exists
             if not os.path.exists(self.log_file_path):
                 print(f"Log file not found: {self.log_file_path}")
                 return
@@ -119,21 +161,37 @@ class LogMonitor:
             if current_size < self.last_position:
                 self.last_position = 0
             
-            # If there's no new content, do nothing
-            if current_size <= self.last_position:
+            # If there's no new content and we're not forcing a read, do nothing
+            if current_size <= self.last_position and not force_read:
                 return
             
-            # Read new content
-            with open(self.log_file_path, 'r', encoding='utf-8', errors='replace') as file:
+            # If we're forcing a read but the file hasn't changed, try to reopen it
+            # This can help with buffering issues
+            if force_read and current_size == self.last_position:
+                # Only force-reread if we haven't successfully read in the last 10 seconds
+                current_time = time.time()
+                if current_time - self.last_successful_read < 10:
+                    return
+                    
+                # Try to reopen the file and read from our last position
+                pass  # Continue to file reading code
+            
+            # Read new content - use a small buffer size to reduce OS buffering
+            with open(self.log_file_path, 'r', encoding='utf-8', errors='replace', buffering=1) as file:
                 file.seek(self.last_position)
                 new_content = file.read()
-                self.last_position = current_size
+                
+                # Only update position if we actually read something or if we're at the end
+                if new_content or current_size == self.last_position:
+                    self.last_position = current_size
+                    self.last_successful_read = time.time()
             
             # Process each line
-            for line in new_content.splitlines():
-                player_names = self._parse_who_output(line)
-                if player_names:
-                    self.callback(player_names)
+            if new_content:
+                for line in new_content.splitlines():
+                    player_names = self._parse_who_output(line)
+                    if player_names:
+                        self.callback(player_names)
         
         except Exception as e:
             print(f"Error processing log file: {str(e)}")
@@ -165,6 +223,9 @@ class LogMonitor:
         
         # Filter out any empty names
         player_names = [name for name in player_names if name]
+        
+        # Print debug info about detected players
+        print(f"Detected players: {player_names}")
         
         # Remove duplicates while preserving order
         seen: Set[str] = set()

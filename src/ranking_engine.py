@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional, Callable
 
 def rank_players(processed_stats_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Rank players based on their Bedwars stars and FKDR.
+    Rank players based on their Bedwars stars, FKDR, and WLR.
     
     Args:
         processed_stats_list: List of processed player stat dictionaries.
@@ -22,6 +22,7 @@ def rank_players(processed_stats_list: List[Dict[str, Any]]) -> List[Dict[str, A
         # Extract the sorting values with safe defaults
         stars = player.get('bedwars_stars', 0)
         fkdr = player.get('fkdr', 0.0)
+        wlr = player.get('wlr', 0.0)
         
         # Handle non-numeric values
         try:
@@ -33,9 +34,18 @@ def rank_players(processed_stats_list: List[Dict[str, Any]]) -> List[Dict[str, A
             fkdr = float(fkdr) if fkdr is not None else 0.0
         except (ValueError, TypeError):
             fkdr = 0.0
+            
+        try:
+            wlr = float(wlr) if wlr is not None else 0.0
+        except (ValueError, TypeError):
+            wlr = 0.0
         
-        # Return a tuple for sorting (stars first, then FKDR)
-        return (-stars, -fkdr)  # Negative to sort in descending order
+        # Calculate a weighted score with increased emphasis on FKDR and WLR
+        # FKDR gets 3x weight, WLR gets 2x weight, and stars get 0.5x weight
+        score = (fkdr * 3.0) + (wlr * 2.0) + (stars / 20.0)
+        
+        # Return the negative score for descending sort
+        return (-score,)
     
     # Sort the list using the key function
     sorted_list = sorted(processed_stats_list, key=sort_key)
