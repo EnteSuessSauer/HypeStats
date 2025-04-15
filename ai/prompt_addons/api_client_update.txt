@@ -1,0 +1,24 @@
+# API Client Update Prompt
+
+This is a placeholder file that could be used to store specific prompts for AI assistance with enhancing the API client.
+
+Example prompt template:
+
+```
+I need to update the API client (src/api_client.py) to implement a more robust rate limiting mechanism.
+The current approach uses a simple time delay between requests, but I want to switch to a token bucket algorithm.
+
+Specific requirements:
+1. Maintain separate rate limits for Hypixel API (120 req/min) and Mojang API (600 req/10min)
+2. Implement proper request queuing to handle concurrent requests gracefully
+3. Add retry logic for failed requests with exponential backoff
+4. Ensure the implementation is thread-safe
+
+Please guide me through this implementation, showing the updated code structure and explaining the changes.
+```
+
+Additional prompt ideas:
+- Adding caching to the API client
+- Implementing batch processing for multiple usernames
+- Adding support for new Hypixel API endpoints
+- Improving error handling and recovery mechanisms 

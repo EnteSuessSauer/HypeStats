@@ -1,0 +1,7 @@
+requests
+python-dotenv
+watchdog
+PyQt6
+pytest
+pytest-mock
+configparser 
