@@ -7,7 +7,7 @@ import time
 import os
 from typing import List, Dict, Any, Optional
 
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread, QTimer
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
@@ -224,18 +224,20 @@ class StatsWorker(QObject):
     error = pyqtSignal(str)      # Signal emitted when an error occurs
     progress = pyqtSignal(int)   # Signal to update progress (0-100)
     
-    def __init__(self, usernames: List[str], api_client: ApiClient) -> None:
+    def __init__(self, usernames: List[str], api_client: ApiClient, existing_stats: List[Dict[str, Any]] = None) -> None:
         """
         Initialize the worker with usernames and API client.
         
         Args:
             usernames: List of usernames to fetch stats for.
             api_client: The API client to use.
+            existing_stats: List of existing player stats to preserve.
         """
         super().__init__()
         self.usernames = usernames
         self.api_client = api_client
         self.is_running = True
+        self.existing_stats = existing_stats
     
     def process(self) -> None:
         """
@@ -243,16 +245,30 @@ class StatsWorker(QObject):
         Emits the finished signal with the processed stats.
         """
         all_player_stats = []
-        total_players = len(self.usernames)
+        total_players = max(1, len(self.usernames))  # Ensure total_players is at least 1 to avoid division by zero
+        processed_count = 0  # Track actual number of processed players
+        
+        # Start with existing player stats if available
+        if self.existing_stats:
+            all_player_stats = self.existing_stats.copy()
         
         try:
             for i, username in enumerate(self.usernames):
                 if not self.is_running:
                     break
                 
+                # Skip players we already have stats for
+                if self.existing_stats and any(player.get('username') == username for player in self.existing_stats):
+                    # Count skipped players in progress calculation
+                    processed_count += 1
+                    progress_percent = min(99, int((processed_count / total_players) * 100))
+                    self.progress.emit(progress_percent)
+                    continue
+                
                 try:
-                    # Update progress
-                    progress_percent = int((i / total_players) * 100)
+                    # Update progress - make sure we don't reach 100% until completely done
+                    processed_count += 1
+                    progress_percent = min(99, int((processed_count / total_players) * 100))
                     self.progress.emit(progress_percent)
                     
                     # Get UUID for the username
@@ -268,25 +284,65 @@ class StatsWorker(QObject):
                     all_player_stats.append(processed_stats)
                 
                 except Exception as e:
-                    # Skip this player but continue with others
+                    # Create placeholder stats for players that can't be found (likely nicked)
                     print(f"Error processing player {username}: {str(e)}")
+                    
+                    # Create more complete placeholder stats for nicked players with '?' as values
+                    placeholder_stats = {
+                        'username': username,
+                        'bedwars_stars': '?',
+                        'fkdr': '?',
+                        'wlr': '?',
+                        'level': '?',
+                        'achievement_points': '?',
+                        'nick_probability': 0.9,  # High probability of being nicked
+                        'nick_estimate': 'Highly Likely Nick',
+                        'is_placeholder': True  # Mark as placeholder for display purposes
+                    }
+                    all_player_stats.append(placeholder_stats)
             
             # Rank the players
             if all_player_stats and self.is_running:
-                ranked_stats = ranking_engine.rank_players(all_player_stats)
+                # Only rank players with actual numeric stats
+                valid_players = [p for p in all_player_stats if not p.get('is_placeholder', False)]
+                placeholder_players = [p for p in all_player_stats if p.get('is_placeholder', False)]
                 
-                # Calculate nick probabilities
-                for player in ranked_stats:
-                    nick_score = nick_detector.estimate_if_nicked(player)
-                    player['nick_score'] = nick_score
-                    player['nick_description'] = nick_detector.get_nick_probability_description(nick_score)
+                # Rank the valid players
+                ranked_valid_stats = ranking_engine.rank_players(valid_players) if valid_players else []
+                
+                # Add placeholders at the end with incrementing ranks
+                final_stats = []
+                
+                # Add valid ranked players
+                for idx, player in enumerate(ranked_valid_stats):
+                    player['rank'] = idx + 1
+                    final_stats.append(player)
+                
+                # Add placeholder players with ranks after the valid players
+                for idx, player in enumerate(placeholder_players):
+                    player['rank'] = len(ranked_valid_stats) + idx + 1
+                    final_stats.append(player)
+                
+                # Calculate nick probabilities for players with real stats
+                for player in final_stats:
+                    if not player.get('is_placeholder', False) and not player.get('nick_probability'):
+                        nick_score = nick_detector.estimate_if_nicked(player)
+                        player['nick_probability'] = nick_score
+                        player['nick_estimate'] = nick_detector.get_nick_probability_description(nick_score)
+                
+                # Emit 100% progress after all processing is complete
+                self.progress.emit(100)
                 
                 # Emit the result
-                self.finished.emit(ranked_stats)
+                self.finished.emit(final_stats)
             else:
+                # Emit 100% progress even if we have no results
+                self.progress.emit(100)
                 self.finished.emit([])
             
         except Exception as e:
+            # Make sure to emit 100% progress even on error
+            self.progress.emit(100)
             self.error.emit(f"Error fetching player stats: {str(e)}")
     
     def stop(self) -> None:
@@ -701,50 +757,58 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
         
-        # Check if API key is set, prompt if not
-        if not self._check_api_key():
-            # User canceled, exit the application
-            sys.exit(0)
-            
-        # Check if log file path is set, prompt if not
-        if not self._check_log_file():
-            # User canceled, exit the application
-            sys.exit(0)
-        
-        # Initialize API client and log monitor
-        self.api_client = ApiClient()
-        
+        # Load the API key
         try:
-            self.log_monitor = LogMonitor(self.handle_lobby_update)
-        except ValueError as e:
-            # If there's an error with the log file, show dialog to select a valid one
-            QMessageBox.critical(self, "Log File Error", str(e))
-            if not self._check_log_file(force_prompt=True):
-                sys.exit(0)
-            self.log_monitor = LogMonitor(self.handle_lobby_update)
-            
-        self.worker_thread = None
+            api_key = config.get_api_key()
+            self.api_client = ApiClient(api_key)
+        except Exception as e:
+            api_key = None
+            self.api_client = None
+            print(f"Error loading API key: {str(e)}")
         
-        # Set up UI
+        # Setup UI
         self.setWindowTitle("Hypixel Stats Companion")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 600)
         
-        # Central widget
+        # Check if API key is set, if not, show dialog
+        if not api_key:
+            self._prompt_for_api_key()
+            
+        # Check if log file path is set, if not, show dialog
+        try:
+            log_file_path = config.get_log_file_path()
+            if not log_file_path or not os.path.exists(log_file_path):
+                self._prompt_for_log_file()
+        except:
+            self._prompt_for_log_file()
+        
+        # Create central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
-        # Main layout
         main_layout = QVBoxLayout(central_widget)
         
-        # Top controls layout
+        # Create tabs
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs)
+        
+        # Create main tab
+        self.main_tab = QWidget()
+        self.tabs.addTab(self.main_tab, "Player Stats")
+        
+        # Set up main tab layout
+        main_tab_layout = QVBoxLayout(self.main_tab)
+        
+        # Top controls for main tab
         top_controls = QHBoxLayout()
         
-        # Search bar
+        # Player lookup
         search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Lookup Player:"))
         
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter Minecraft username")
-        search_layout.addWidget(self.username_input)
+        self.player_lookup = QLineEdit()
+        self.player_lookup.setPlaceholderText("Enter a player name")
+        self.player_lookup.returnPressed.connect(self.lookup_player)
+        search_layout.addWidget(self.player_lookup)
         
         self.lookup_button = QPushButton("Lookup")
         self.lookup_button.clicked.connect(self.lookup_player)
@@ -757,7 +821,7 @@ class MainWindow(QMainWindow):
         self.settings_button.clicked.connect(self.open_settings)
         top_controls.addWidget(self.settings_button)
         
-        main_layout.addLayout(top_controls)
+        main_tab_layout.addLayout(top_controls)
         
         # Lobby status
         lobby_layout = QHBoxLayout()
@@ -778,30 +842,54 @@ class MainWindow(QMainWindow):
         self.monitor_toggle_button.clicked.connect(self.toggle_monitoring)
         lobby_layout.addWidget(self.monitor_toggle_button)
         
-        main_layout.addLayout(lobby_layout)
+        main_tab_layout.addLayout(lobby_layout)
         
         # Main table
         self.table = QTableWidget()
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(9)  # Added Team column
         self.table.setHorizontalHeaderLabels([
-            "Rank", "Username", "Stars", "FKDR", "WLR", 
+            "Rank", "Username", "Team", "Stars", "FKDR", "WLR", 
             "Level", "Nick Est.", "AP"
         ])
         
         # Set table properties
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Username column stretches
-        for i in [0, 2, 3, 4, 5, 6, 7]:  # Fixed width for other columns
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
         
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)  # Read-only
+        # Set minimum widths for columns to ensure header text remains visible with sort indicator
+        self.table.setColumnWidth(0, 50)  # Rank
+        self.table.setColumnWidth(1, 120)  # Username
+        self.table.setColumnWidth(2, 80)   # Team
+        self.table.setColumnWidth(3, 60)   # Stars
+        self.table.setColumnWidth(4, 60)   # FKDR
+        self.table.setColumnWidth(5, 60)   # WLR
+        self.table.setColumnWidth(6, 60)   # Level
+        self.table.setColumnWidth(7, 100)  # Nick Est.
+        self.table.setColumnWidth(8, 60)   # AP
+        
+        # Username column stretches
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        # Other columns resize to content but with constraints
+        for i in [0, 2, 3, 4, 5, 6, 7, 8]:
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.Interactive)
+            
+        # Set header text alignment to center
+        for i in range(9):
+            self.table.horizontalHeaderItem(i).setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setAlternatingRowColors(True)
+        
+        # Enable sorting
+        self.table.setSortingEnabled(True)
+        
+        # Connect header click to sorting function
+        self.table.horizontalHeader().sectionClicked.connect(self._sort_table)
         
         # Double click on player row to show details
         self.table.itemDoubleClicked.connect(self._show_player_details_from_table)
         
-        main_layout.addWidget(self.table)
+        main_tab_layout.addWidget(self.table)
         
         # Status bar
         self.status_bar = QStatusBar()
@@ -809,7 +897,31 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage("Ready")
         
         # Start the log monitor
+        self.log_monitor = LogMonitor(self.handle_lobby_update, self.update_player_team)
+        self.worker_thread = None
+        self.worker = None
+        
+        # Store current player stats for team color updates
+        self.current_player_stats = []
+        
+        # Start the log monitor
         self.start_monitoring()
+        
+        # Set up periodic refresh timer
+        self._setup_refresh_timer()
+    
+    def _setup_refresh_timer(self) -> None:
+        """
+        Set up a timer to periodically refresh the player list from the log file.
+        This helps ensure we don't miss any players, especially with the /who command.
+        """
+        # Create a timer that triggers every 30 seconds
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(30000)  # 30 seconds in milliseconds
+        self.refresh_timer.timeout.connect(self.refresh_log)
+        self.refresh_timer.start()
+        
+        print("Set up periodic refresh timer - will refresh every 30 seconds")
     
     def open_settings(self) -> None:
         """
@@ -845,7 +957,7 @@ class MainWindow(QMainWindow):
                 if restart_needed and self.log_monitor.running:
                     self.status_bar.showMessage("Restarting log monitor with new settings...")
                     self.stop_monitoring()
-                    self.log_monitor = LogMonitor(self.handle_lobby_update)
+                    self.log_monitor = LogMonitor(self.handle_lobby_update, self.update_player_team)
                     self.start_monitoring()
             except:
                 pass
@@ -900,7 +1012,7 @@ class MainWindow(QMainWindow):
         """
         Look up a player by username.
         """
-        username = self.username_input.text().strip()
+        username = self.player_lookup.text().strip()
         
         if not username:
             self.show_error("Please enter a username")
@@ -1015,7 +1127,7 @@ class MainWindow(QMainWindow):
                             if result == QMessageBox.StandardButton.Yes:
                                 # Save the key and continue, even though validation failed
                                 config.save_config("Hypixel", "API_KEY", api_key)
-                                return True
+                                self.api_client = ApiClient(api_key)
                             else:
                                 return self._check_api_key()  # Try again
                         
@@ -1033,6 +1145,7 @@ class MainWindow(QMainWindow):
                         )
                         # Save anyway and continue
                         config.save_config("Hypixel", "API_KEY", api_key)
+                        self.api_client = ApiClient(api_key)
                         return True
                         
                 else:
@@ -1096,126 +1209,345 @@ class MainWindow(QMainWindow):
             else:
                 return False
     
-    def handle_lobby_update(self, usernames: List[str]) -> None:
+    def handle_lobby_update(self, usernames):
         """
-        Handle lobby player update from log monitor.
+        Update the lobby status including player stats.
+        Called when the log monitor detects a /who command output.
         
         Args:
-            usernames: List of player usernames in the lobby.
+            usernames: List of player usernames
         """
-        # Update lobby status
-        self.lobby_status.setText(f"{len(usernames)} players")
+        if not usernames:
+            return
+
+        self.update_status("Updating lobby stats...")
+        self.last_update_time = time.time()
         
-        # Clear the table
+        # Store the complete list of usernames for reference
+        self.all_lobby_usernames = usernames.copy()
+        
+        # Clear the current stats
+        self.table.clearContents()
         self.table.setRowCount(0)
+        self.current_player_stats = []
+
+        # Show loading animation
+        self.fetch_progress.setValue(0)
+        self.fetch_progress.setMaximum(len(usernames))
+        self.fetch_progress.show()
         
-        # Update status
-        self.status_bar.showMessage("Fetching lobby stats...")
-        
-        # Start the worker thread
-        self.fetch_player_stats(usernames)
-    
-    def fetch_player_stats(self, usernames: List[str]) -> None:
-        """
-        Fetch player stats in a background thread.
-        
-        Args:
-            usernames: List of player usernames to fetch stats for.
-        """
-        # If a thread is already running, stop it
-        if self.worker_thread and self.worker_thread.isRunning():
-            worker = self.worker_thread.findChild(StatsWorker)
-            if worker:
-                worker.stop()
-            self.worker_thread.quit()
-            self.worker_thread.wait()
-        
-        # Create a new thread and worker
-        self.worker_thread = QThread()
-        self.worker = StatsWorker(usernames, self.api_client)
-        self.worker.moveToThread(self.worker_thread)
+        # Create worker thread to fetch stats
+        self.stats_worker = StatsWorker(usernames, self.api_client)
         
         # Connect signals
-        self.worker_thread.started.connect(self.worker.process)
-        self.worker.finished.connect(self._populate_table)
-        self.worker.error.connect(self.show_error)
-        self.worker.progress.connect(self._update_progress)
-        self.worker.finished.connect(self.worker_thread.quit)
+        self.stats_worker.progress_signal.connect(self.update_progress)
+        self.stats_worker.error_signal.connect(self.handle_error)
+        self.stats_worker.stats_signal.connect(self.process_player_stats)
         
-        # Start the thread
-        self.worker_thread.start()
-    
-    def _update_progress(self, progress: int) -> None:
+        # Start worker
+        self.stats_thread = QThread()
+        self.stats_worker.moveToThread(self.stats_thread)
+        self.stats_thread.started.connect(self.stats_worker.process)
+        self.stats_thread.start()
+
+    def process_player_stats(self, player_stats):
         """
-        Update the status bar with progress.
+        Process the final player stats received from the worker.
         
         Args:
-            progress: Progress percentage (0-100).
+            player_stats: List of player stats dictionaries
         """
-        self.status_bar.showMessage(f"Fetching player stats: {progress}%")
+        # Find players that are in the lobby but didn't get stats (likely nicks)
+        found_usernames = {p.get('username', '').lower() for p in player_stats}
+        missing_players = []
+        
+        for username in self.all_lobby_usernames:
+            if username.lower() not in found_usernames:
+                # Add placeholder stats for missing players (likely nicks)
+                missing_players.append({
+                    'username': username,
+                    'bedwars_stars': '?',
+                    'fkdr': '?',
+                    'wlr': '?',
+                    'level': '?',
+                    'achievement_points': '?',
+                    'nick_percent': 100.0,  # 100% likely to be a nick
+                    'nick_description': 'highly likely nick',
+                    'rank': len(player_stats) + len(missing_players) + 1  # Append at the end
+                })
+        
+        # Add the missing players to the stats list
+        all_players = player_stats + missing_players
+        
+        # Update the current player stats
+        self.current_player_stats = all_players
+        
+        # Populate the table with all players
+        self._populate_table()
+        
+        # Update status bar
+        num_suspected_nicks = sum(1 for p in all_players if p.get('nick_percent', 0) > 50)
+        self.update_status(f"Found {len(all_players)} players ({num_suspected_nicks} suspected nicks)")
+        
+        # Hide progress bar
+        self.fetch_progress.hide()
     
-    def _populate_table(self, player_stats: List[Dict[str, Any]]) -> None:
-        """
-        Populate the table with player stats.
+    def _populate_table(self) -> None:
+        """Populate the table with player stats."""
+        self.table.setSortingEnabled(False)
+        self.table.clearContents()
+        self.table.setRowCount(len(self.current_player_stats))
         
-        Args:
-            player_stats: List of processed player stat dictionaries.
-        """
-        # Clear the table
-        self.table.setRowCount(0)
-        
-        # If no players, show message and return
-        if not player_stats:
-            self.status_bar.showMessage("No players found or error fetching data")
-            return
-        
-        # Add rows to the table
-        self.table.setRowCount(len(player_stats))
-        
-        for row, player in enumerate(player_stats):
-            # Rank
-            rank_item = QTableWidgetItem(str(row + 1))
+        for row, player in enumerate(self.current_player_stats):
+            # Rank column
+            rank_item = QTableWidgetItem()
+            rank_item.setData(Qt.ItemDataRole.DisplayRole, player.get('rank', 0))
+            rank_item.setData(Qt.ItemDataRole.UserRole, int(player.get('rank', 0)))  # Store as integer for sorting
+            rank_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 0, rank_item)
             
-            # Username
-            username_item = QTableWidgetItem(player.get('username', 'Unknown'))
+            # Username column
+            username_item = QTableWidgetItem(player.get('username', ''))
+            username_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 1, username_item)
             
-            # Stars - divide by 10 to show as decimal
-            stars_value = player.get('bedwars_stars', 0)
-            stars_item = QTableWidgetItem(f"{stars_value/10:.1f}")
-            self.table.setItem(row, 2, stars_item)
+            # Team column
+            team_item = QTableWidgetItem()
+            team_color = "Unknown"
+            if player.get('username') in self.log_monitor.player_teams:
+                team_color = self.log_monitor.player_teams[player.get('username')]
+                
+                # Set background color based on team color
+                if team_color == "RED":
+                    team_item.setBackground(QColor(255, 100, 100))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("RED")
+                elif team_color == "BLUE":
+                    team_item.setBackground(QColor(100, 100, 255))
+                    team_item.setForeground(QColor(255, 255, 255))
+                    team_item.setText("BLUE")
+                elif team_color == "GREEN":
+                    team_item.setBackground(QColor(100, 255, 100))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("GREEN")
+                elif team_color == "YELLOW":
+                    team_item.setBackground(QColor(255, 255, 100))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("YELLOW")
+                elif team_color == "AQUA":
+                    team_item.setBackground(QColor(100, 255, 255))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("AQUA")
+                elif team_color == "WHITE":
+                    team_item.setBackground(QColor(255, 255, 255))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("WHITE")
+                elif team_color == "PINK":
+                    team_item.setBackground(QColor(255, 100, 255))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("PINK")
+                elif team_color == "GRAY":
+                    team_item.setBackground(QColor(150, 150, 150))
+                    team_item.setForeground(QColor(255, 255, 255))
+                    team_item.setText("GRAY")
+                elif team_color == "YOUR_TEAM":
+                    team_item.setBackground(QColor(100, 255, 100))
+                    team_item.setForeground(QColor(0, 0, 0))
+                    team_item.setText("YOUR TEAM")
+                else:
+                    team_item.setText(team_color)
+            else:
+                team_item.setText("")
             
-            # FKDR
-            fkdr_item = QTableWidgetItem(f"{player.get('fkdr', 0.0):.2f}")
-            self.table.setItem(row, 3, fkdr_item)
+            team_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 2, team_item)
             
-            # WLR
-            wlr_item = QTableWidgetItem(f"{player.get('wlr', 0.0):.2f}")
-            self.table.setItem(row, 4, wlr_item)
+            # Stars column
+            stars_item = QTableWidgetItem()
+            stars = player.get('bedwars_stars', '?')
+            if stars != '?':
+                try:
+                    stars_value = int(stars)
+                    stars_item.setData(Qt.ItemDataRole.DisplayRole, stars_value)
+                    stars_item.setData(Qt.ItemDataRole.UserRole, stars_value)  # Store as integer for sorting
+                except (ValueError, TypeError):
+                    stars_item.setText(str(stars))
+                    stars_item.setData(Qt.ItemDataRole.UserRole, 0)  # Default for sorting
+            else:
+                stars_item.setText('?')
+                stars_item.setData(Qt.ItemDataRole.UserRole, -1)  # Place ? at the bottom when sorting
+            stars_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 3, stars_item)
             
-            # Level
-            level_item = QTableWidgetItem(f"{player.get('hypixel_level', 0.0):.1f}")
-            self.table.setItem(row, 5, level_item)
+            # FKDR column
+            fkdr_item = QTableWidgetItem()
+            fkdr = player.get('fkdr', '?')
+            if fkdr != '?':
+                try:
+                    fkdr_value = float(fkdr)
+                    fkdr_item.setData(Qt.ItemDataRole.DisplayRole, f"{fkdr_value:.2f}")
+                    fkdr_item.setData(Qt.ItemDataRole.UserRole, fkdr_value)  # Store as float for sorting
+                except (ValueError, TypeError):
+                    fkdr_item.setText(str(fkdr))
+                    fkdr_item.setData(Qt.ItemDataRole.UserRole, 0.0)  # Default for sorting
+            else:
+                fkdr_item.setText('?')
+                fkdr_item.setData(Qt.ItemDataRole.UserRole, -1.0)  # Place ? at the bottom when sorting
+            fkdr_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 4, fkdr_item)
             
-            # Nick Est.
-            nick_description = player.get('nick_description', 'Unknown')
-            nick_item = QTableWidgetItem(nick_description)
+            # WLR column
+            wlr_item = QTableWidgetItem()
+            wlr = player.get('wlr', '?')
+            if wlr != '?':
+                try:
+                    wlr_value = float(wlr)
+                    wlr_item.setData(Qt.ItemDataRole.DisplayRole, f"{wlr_value:.2f}")
+                    wlr_item.setData(Qt.ItemDataRole.UserRole, wlr_value)  # Store as float for sorting
+                except (ValueError, TypeError):
+                    wlr_item.setText(str(wlr))
+                    wlr_item.setData(Qt.ItemDataRole.UserRole, 0.0)  # Default for sorting
+            else:
+                wlr_item.setText('?')
+                wlr_item.setData(Qt.ItemDataRole.UserRole, -1.0)  # Place ? at the bottom when sorting
+            wlr_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 5, wlr_item)
             
-            # Color code based on nick probability
-            if nick_description == "Very Likely Nicked":
-                nick_item.setBackground(Qt.GlobalColor.red)
-            elif nick_description == "Probably Nicked":
-                nick_item.setBackground(Qt.GlobalColor.yellow)
+            # Level column
+            level_item = QTableWidgetItem()
+            level = player.get('level', '?')
+            if level != '?':
+                try:
+                    level_value = int(level)
+                    level_item.setData(Qt.ItemDataRole.DisplayRole, level_value)
+                    level_item.setData(Qt.ItemDataRole.UserRole, level_value)  # Store as integer for sorting
+                except (ValueError, TypeError):
+                    level_item.setText(str(level))
+                    level_item.setData(Qt.ItemDataRole.UserRole, 0)  # Default for sorting
+            else:
+                level_item.setText('?')
+                level_item.setData(Qt.ItemDataRole.UserRole, -1)  # Place ? at the bottom when sorting
+            level_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 6, level_item)
             
-            self.table.setItem(row, 6, nick_item)
+            # Nick Est. column
+            nick_est_item = QTableWidgetItem(player.get('nick_estimate', ''))
+            # Highlight suspected nicks
+            nick_probability = player.get('nick_probability', 0.0)
+            if nick_probability > 0.7:  # Highly likely nicks
+                nick_est_item.setBackground(QColor(255, 100, 100))  # Red background
+            elif nick_probability > 0.4:  # Possible nicks
+                nick_est_item.setBackground(QColor(255, 200, 100))  # Orange background
+            nick_est_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 7, nick_est_item)
             
-            # Achievement Points
-            ap_item = QTableWidgetItem(str(player.get('achievement_points', 0)))
-            self.table.setItem(row, 7, ap_item)
+            # AP column
+            ap_item = QTableWidgetItem()
+            ap = player.get('achievement_points', '?')
+            if ap != '?':
+                try:
+                    ap_value = int(ap)
+                    ap_item.setData(Qt.ItemDataRole.DisplayRole, ap_value)
+                    ap_item.setData(Qt.ItemDataRole.UserRole, ap_value)  # Store as integer for sorting
+                except (ValueError, TypeError):
+                    ap_item.setText(str(ap))
+                    ap_item.setData(Qt.ItemDataRole.UserRole, 0)  # Default for sorting
+            else:
+                ap_item.setText('?')
+                ap_item.setData(Qt.ItemDataRole.UserRole, -1)  # Place ? at the bottom when sorting
+            ap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 8, ap_item)
         
-        # Update status
-        self.status_bar.showMessage(f"Loaded stats for {len(player_stats)} players")
+        # Apply initial sort to rank column
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+    
+    def update_player_team(self, player_name: str, team_color: str) -> None:
+        """
+        Update team color for a player and refresh the table if needed.
+        
+        Args:
+            player_name: The player's username.
+            team_color: The team color.
+        """
+        if not self.current_player_stats:
+            return
+            
+        # Check if player is in the current table
+        player_found = False
+        for player in self.current_player_stats:
+            if player.get('username') == player_name:
+                player_found = True
+                break
+                
+        if player_found:
+            # Remember current sort state
+            header = self.table.horizontalHeader()
+            sort_column = header.sortIndicatorSection()
+            sort_order = header.sortIndicatorOrder()
+            
+            # Find the row for this player
+            for row in range(self.table.rowCount()):
+                username_item = self.table.item(row, 1)
+                if username_item and username_item.text() == player_name:
+                    # Update the team cell
+                    team_item = QTableWidgetItem()
+                    team_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    
+                    # Set team color background
+                    if team_color == "RED":
+                        team_item.setBackground(QColor(255, 100, 100))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("RED")
+                    elif team_color == "BLUE":
+                        team_item.setBackground(QColor(100, 100, 255))
+                        team_item.setForeground(QColor(255, 255, 255))
+                        team_item.setText("BLUE")
+                    elif team_color == "GREEN":
+                        team_item.setBackground(QColor(100, 255, 100))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("GREEN")
+                    elif team_color == "YELLOW":
+                        team_item.setBackground(QColor(255, 255, 100))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("YELLOW")
+                    elif team_color == "AQUA":
+                        team_item.setBackground(QColor(100, 255, 255))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("AQUA")
+                    elif team_color == "WHITE":
+                        team_item.setBackground(QColor(255, 255, 255))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("WHITE")
+                    elif team_color == "PINK":
+                        team_item.setBackground(QColor(255, 100, 255))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("PINK")
+                    elif team_color == "GRAY":
+                        team_item.setBackground(QColor(150, 150, 150))
+                        team_item.setForeground(QColor(255, 255, 255))
+                        team_item.setText("GRAY")
+                    elif team_color == "YOUR_TEAM":
+                        team_item.setBackground(QColor(100, 255, 100))
+                        team_item.setForeground(QColor(0, 0, 0))
+                        team_item.setText("YOUR TEAM")
+                    else:
+                        team_item.setText(team_color)
+                    
+                    # Disable sorting temporarily
+                    self.table.setSortingEnabled(False)
+                    
+                    # Update the item
+                    self.table.setItem(row, 2, team_item)
+                    
+                    # Restore sorting
+                    self.table.setSortingEnabled(True)
+                    
+                    # Restore sort column
+                    if sort_column >= 0:
+                        self.table.sortByColumn(sort_column, sort_order)
+                    
+                    break
     
     def show_error(self, message: str) -> None:
         """
@@ -1258,4 +1590,139 @@ class MainWindow(QMainWindow):
                 self,
                 "Monitoring Inactive",
                 "Log monitoring is not active. Please start monitoring first."
-            ) 
+            )
+
+    def _prompt_for_api_key(self) -> None:
+        """
+        Prompt the user for the API key.
+        """
+        dialog = ApiKeyDialog(self)
+        if dialog.exec():
+            api_key = dialog.get_api_key()
+            if api_key:
+                # Validate the new API key with a network request
+                try:
+                    temp_client = ApiClient(api_key)
+                    if not temp_client.verify_api_key():
+                        QMessageBox.critical(
+                            self, 
+                            "Invalid API Key", 
+                            "The API key validation failed. This could be because:\n\n"
+                            "1. The key is invalid or has expired\n"
+                            "2. The Hypixel API is experiencing issues\n"
+                            "3. Your internet connection is having problems\n\n"
+                            "You can try again or continue with this key (some features may not work)."
+                        )
+                        
+                        # Ask if the user wants to try again or use this key anyway
+                        result = QMessageBox.question(
+                            self,
+                            "Continue?",
+                            "Would you like to use this key anyway and try to start the application?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            QMessageBox.StandardButton.No
+                        )
+                        
+                        if result == QMessageBox.StandardButton.Yes:
+                            # Save the key and continue, even though validation failed
+                            config.save_config("Hypixel", "API_KEY", api_key)
+                            self.api_client = ApiClient(api_key)
+                        else:
+                            self._prompt_for_api_key()  # Try again
+                except requests.RequestException as e:
+                    # Connection error during validation
+                    QMessageBox.warning(
+                        self,
+                        "Connection Error",
+                        f"Could not verify the API key due to a connection error:\n{str(e)}\n\n"
+                        f"The key will be saved, but may not work if entered incorrectly."
+                    )
+                    # Save anyway and continue
+                    config.save_config("Hypixel", "API_KEY", api_key)
+                    self.api_client = ApiClient(api_key)
+            else:
+                QMessageBox.critical(self, "Error", "API key cannot be empty.")
+                self._prompt_for_api_key()  # Recursively prompt until valid
+    
+    def _prompt_for_log_file(self) -> None:
+        """
+        Prompt the user for the log file path.
+        """
+        dialog = LogFileDialog(self)
+        if dialog.exec():
+            log_file_path = dialog.get_log_file_path()
+            if log_file_path:
+                config.save_config("Minecraft", "LOG_FILE_PATH", log_file_path)
+            else:
+                QMessageBox.critical(self, "Error", "Log file path cannot be empty.")
+                self._prompt_for_log_file()  # Try again
+        else:
+            # User clicked Cancel
+            sys.exit(0)
+
+    def _sort_table(self, column_index):
+        """
+        Sort the table by the clicked column.
+        Handles numeric columns appropriately.
+        
+        Args:
+            column_index: The index of the column to sort by
+        """
+        from src.ranking_engine import get_sort_value
+        
+        # Get current sort order (toggle it)
+        header = self.table.horizontalHeader()
+        sort_order = Qt.SortOrder.AscendingOrder
+        
+        # Check if we're already sorting by this column
+        if header.sortIndicatorSection() == column_index:
+            # Toggle sort order
+            current_order = header.sortIndicatorOrder()
+            sort_order = Qt.SortOrder.DescendingOrder if current_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
+        
+        # Store current sort state
+        header.setSortIndicator(column_index, sort_order)
+        
+        # Store current selection
+        selected_rows = []
+        for index in self.table.selectedIndexes():
+            if index.row() not in selected_rows:
+                selected_rows.append(index.row())
+        
+        # Extract data from the table
+        data = []
+        for row in range(self.table.rowCount()):
+            row_data = []
+            for col in range(self.table.columnCount()):
+                item = self.table.item(row, col)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
+        
+        # Sort data by the specified column
+        reverse = sort_order == Qt.SortOrder.DescendingOrder
+        
+        # Define a custom sort key based on column type
+        def sort_key(row):
+            value = row[column_index]
+            
+            # For numeric columns, use numeric sorting
+            if column_index in [0, 3, 4, 5, 6, 8]:  # Rank, Stars, FKDR, WLR, Level, AP
+                return get_sort_value(value)
+            # For string columns, use case-insensitive string comparison
+            else:
+                return value.lower() if isinstance(value, str) else value
+        
+        # Apply sorting
+        data.sort(key=sort_key, reverse=reverse)
+        
+        # Update the table with sorted data
+        self.table.clearContents()
+        for row, row_data in enumerate(data):
+            for col, value in enumerate(row_data):
+                item = QTableWidgetItem(value)
+                self.table.setItem(row, col, item)
+        
+        # Restore selection
+        for row in selected_rows:
+            if row < self.table.rowCount():
+                self.table.selectRow(row) 

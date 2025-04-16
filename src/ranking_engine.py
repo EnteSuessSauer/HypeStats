@@ -3,58 +3,57 @@ Ranking Engine for Hypixel Stats Companion.
 Sorts players based on their statistics.
 """
 from typing import Dict, Any, List, Optional, Callable
+import copy
 
-def rank_players(processed_stats_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def rank_players(players: List[Dict]) -> List[Dict]:
     """
-    Rank players based on their Bedwars stars, FKDR, and WLR.
+    Rank players based on their Bedwars stats, with emphasis on skill-based metrics.
     
     Args:
-        processed_stats_list: List of processed player stat dictionaries.
+        players: List of player stat dictionaries
         
     Returns:
-        List[Dict[str, Any]]: The sorted list of player stats.
+        List of ranked player stat dictionaries
     """
-    if not processed_stats_list:
+    if not players:
         return []
-    
-    # Define a key function for sorting
-    def sort_key(player: Dict[str, Any]) -> tuple:
-        # Extract the sorting values with safe defaults
-        stars = player.get('bedwars_stars', 0)
-        fkdr = player.get('fkdr', 0.0)
-        wlr = player.get('wlr', 0.0)
         
-        # Handle non-numeric values
+    # Create a copy to avoid modifying the original list
+    players_copy = copy.deepcopy(players)
+    
+    # Define the sorting key function with emphasis on FKDR and WLR
+    def sort_key(player):
+        # Get numeric stats with fallbacks to 0 for non-numeric values
         try:
-            stars = int(stars) if stars is not None else 0
+            stars = float(player.get('bedwars_stars', 0))
         except (ValueError, TypeError):
             stars = 0
             
         try:
-            fkdr = float(fkdr) if fkdr is not None else 0.0
+            fkdr = float(player.get('fkdr', 0))
         except (ValueError, TypeError):
-            fkdr = 0.0
+            fkdr = 0
             
         try:
-            wlr = float(wlr) if wlr is not None else 0.0
+            wlr = float(player.get('wlr', 0))
         except (ValueError, TypeError):
-            wlr = 0.0
+            wlr = 0
+            
+        # Calculate points for each stat (with higher weights for skill-based stats)
+        stars_points = stars / 100.0  # Reduced weight for stars
+        fkdr_points = fkdr * 5.0     # Increased weight for FKDR
+        wlr_points = wlr * 3.0       # Increased weight for WLR
         
-        # Calculate a weighted score with increased emphasis on FKDR and WLR
-        # FKDR gets 3x weight, WLR gets 2x weight, and stars get 0.5x weight
-        score = (fkdr * 3.0) + (wlr * 2.0) + (stars / 20.0)
+        # Cap stars points relative to FKDR points to prevent over-emphasis on stars
+        stars_points = min(stars_points, fkdr_points * 0.3)
         
-        # Return the negative score for descending sort
-        return (-score,)
+        # Total score (negative for descending sort)
+        return -(stars_points + fkdr_points + wlr_points)
     
-    # Sort the list using the key function
-    sorted_list = sorted(processed_stats_list, key=sort_key)
+    # Sort by the key function
+    sorted_players = sorted(players_copy, key=sort_key)
     
-    # Add rank to each player
-    for i, player in enumerate(sorted_list):
-        player['rank'] = i + 1
-    
-    return sorted_list
+    return sorted_players
 
 def get_top_players(processed_stats_list: List[Dict[str, Any]], 
                     count: int = 5, 
@@ -126,3 +125,27 @@ def rank_by_criteria(processed_stats_list: List[Dict[str, Any]],
         player['rank'] = i + 1
     
     return sorted_list 
+
+def get_sort_value(value):
+    """
+    Convert a table item value to a proper sorting value.
+    Handles special cases like '?' and 'N/A'.
+    
+    Args:
+        value: The value to convert for sorting
+        
+    Returns:
+        float: The numeric value for sorting
+    """
+    # Handle non-numeric special cases
+    if value == '?' or value == 'N/A' or value is None:
+        return -1.0
+    
+    # Try to convert to float
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        # For string values, return minimum value
+        if isinstance(value, str):
+            return -1.0
+        return 0.0 
