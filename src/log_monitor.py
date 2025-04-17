@@ -286,6 +286,29 @@ class LogMonitor:
         except Exception as e:
             print(f"Error processing log file: {str(e)}")
     
+    def _strip_minecraft_formatting(self, text: str) -> str:
+        """
+        Strip Minecraft formatting codes from text.
+        
+        Args:
+            text: Text that may contain Minecraft formatting codes.
+            
+        Returns:
+            str: Text with formatting codes removed.
+        """
+        # First handle standard Minecraft color codes (§ followed by a color code)
+        clean_text = re.sub(r'§[0-9a-fklmnor]', '', text)
+        
+        # Handle corrupted encoding sequences that might appear in log files
+        # This includes characters that might be malformed in UTF-8
+        clean_text = re.sub(r'[\x00-\x1F\x7F-\xFF]', '', clean_text)
+        
+        # As a final cleanup, remove any non-alphanumeric characters from the end
+        # This catches any remaining weird sequences at the end of names
+        clean_text = re.sub(r'[^a-zA-Z0-9_]+$', '', clean_text)
+        
+        return clean_text
+    
     def _parse_who_output(self, line: str) -> Optional[List[str]]:
         """
         Parse a log line to check if it matches the Hypixel /who command output.
@@ -311,8 +334,8 @@ class LogMonitor:
         # Split by comma and clean up each name
         player_names = [name.strip() for name in players_text.split(',')]
         
-        # Filter out any empty names
-        player_names = [name for name in player_names if name]
+        # Filter out any empty names and strip formatting codes
+        player_names = [self._strip_minecraft_formatting(name) for name in player_names if name]
         
         # Print debug info about detected players
         print(f"Detected {len(player_names)} players in /who command")
@@ -344,13 +367,17 @@ class LogMonitor:
         if team_chat_match:
             # Someone is chatting in team chat, they're on the same team as the player
             player_name = team_chat_match.group(1)
-            # Use 'YOUR_TEAM' as a placeholder for the player's team
-            if player_name and player_name not in self.player_teams:
-                self.player_teams[player_name] = 'YOUR_TEAM'
-                if self.team_callback:
-                    self.team_callback(player_name, 'YOUR_TEAM')
-                print(f"Detected player {player_name} in your team")
-                found_team_info = True
+            if player_name:
+                # Clean the player name
+                player_name = self._strip_minecraft_formatting(player_name)
+                
+                # Use 'YOUR_TEAM' as a placeholder for the player's team
+                if player_name and player_name not in self.player_teams:
+                    self.player_teams[player_name] = 'YOUR_TEAM'
+                    if self.team_callback:
+                        self.team_callback(player_name, 'YOUR_TEAM')
+                    print(f"Detected player {player_name} in your team")
+                    found_team_info = True
             return found_team_info
         
         # Check for team join messages
@@ -359,6 +386,9 @@ class LogMonitor:
             player_name = team_join_match.group(1)
             team_color = team_join_match.group(2)
             if player_name and team_color:
+                # Clean the player name
+                player_name = self._strip_minecraft_formatting(player_name)
+                
                 self.player_teams[player_name] = team_color.upper()
                 # Also add to all_players set in case this is a new player
                 self.all_players.add(player_name)
