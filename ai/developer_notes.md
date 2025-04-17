@@ -48,7 +48,6 @@ if time_since_last_request < 0.5:  # Wait at least 0.5 seconds between requests
 
 This is adequate for basic usage but has several limitations:
 
-- Not suitable for concurrent requests
 - Doesn't properly distribute requests over time
 - Doesn't account for varying rate limits between APIs
 
@@ -56,13 +55,18 @@ This is adequate for basic usage but has several limitations:
 
 ### 2. UI Responsiveness
 
-While the application uses threading to avoid freezing the UI during API calls, there are still areas where the UI could be more responsive:
+The application uses a single-threaded design with Qt's event loop for UI responsiveness:
 
-- Better progress indication during data fetching
-- More incremental updates as data becomes available
-- More graceful handling of API timeouts
+- Progress indication is provided during data fetching
+- UI operations are kept minimal during processing
+- Long-running operations are broken down with intermediate progress updates
 
-**Recommendation**: Explore using `asyncio` with PyQt, or implement a more sophisticated worker thread pool.
+While this approach simplifies the code, it has some limitations:
+
+- Very large requests may still cause the UI to become temporarily unresponsive
+- Complex operations like fetching many players can take noticeable time
+
+**Recommendation**: Consider implementing more granular progress updates and potentially exploring asynchronous processing with QEventLoop for very large operations.
 
 ### 3. Nick Detection Accuracy
 
@@ -130,6 +134,7 @@ To create distributable packages:
 2. **API Limitations**: The Hypixel API sometimes returns incomplete data for certain players
 3. **Nick Detection**: False positives in nick detection, especially for newer players
 4. **UI Scaling**: Some UI elements may not scale properly on high DPI displays
+5. **UI Responsiveness**: Large data fetching operations can cause brief UI pauses
 
 ## Future Feature Ideas
 
@@ -139,3 +144,4 @@ To create distributable packages:
 4. **Notification System**: Alert when highly skilled players join the lobby
 5. **Integration with Discord**: Share lobby analysis with teammates
 6. **Custom Ranking**: Allow users to define their own ranking criteria 
+7. **Asynchronous API Processing**: Implement truly non-blocking API calls for improved responsiveness 

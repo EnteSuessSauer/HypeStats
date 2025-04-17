@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The Hypixel Stats Companion App is structured as a desktop application built with Python and PyQt6/PySide6. This document outlines the high-level architecture, component interactions, and data flow.
+The Hypixel Stats Companion App is structured as a desktop application built with Python and PyQt6. This document outlines the high-level architecture, component interactions, and data flow.
 
 ## Architecture Diagram
 
@@ -54,7 +54,7 @@ The `MainWindow` class is the central UI component that coordinates the interact
 2. Displays player statistics in a table format
 3. Provides manual player lookup functionality
 4. Shows lobby status and nick detection warnings
-5. Handles threading to prevent UI freezing during API calls
+5. Uses QTimer to periodically check the log file
 
 ### Log Monitor
 
@@ -104,24 +104,34 @@ The nick detector module:
 
 ## Data Flow
 
-1. The log monitor detects player names from the Minecraft log file.
-2. The main window receives these names via a callback.
-3. The main window uses a background thread to:
-   a. Request UUIDs for each username from the Mojang API via the API client.
-   b. Fetch player statistics from the Hypixel API via the API client.
-   c. Process these statistics using the stats processor.
-   d. Rank the players using the ranking engine.
-   e. Estimate nick probability using the nick detector.
-4. Once complete, the UI thread updates the table with player information.
+1. The log monitor detects player names from the Minecraft log file through:
+   a. File system events (using watchdog's Observer)
+   b. Periodic checks via QTimer from the main thread
+   
+2. The main window receives these names via a callback and:
+   a. Uses the `StatsProcessor` to synchronously fetch and process player stats
+   b. Updates the UI with progress information during processing
+   c. Displays the results in the table
 
-## Threading Model
+3. The processing flow for each player:
+   a. Request UUID for username from the Mojang API
+   b. Fetch player statistics from the Hypixel API
+   c. Process these statistics using the stats processor
+   d. Rank the players using the ranking engine
+   e. Estimate nick probability using the nick detector
 
-To keep the UI responsive during potentially lengthy API calls, the application uses a worker thread pattern:
+4. The UI is updated with player information in a tabular format, with options to sort by various stats.
 
-1. The `StatsWorker` class runs in a separate `QThread` to perform API calls and data processing.
-2. Communication between the worker thread and UI thread happens via Qt signals/slots mechanism.
-3. Progress updates are sent to the UI during processing.
-4. When complete, the processed data is sent back to the UI thread for display.
+## Application Design
+
+The application follows a single-threaded design with event-driven updates:
+
+1. UI responsiveness is maintained through Qt's event loop architecture
+2. Instead of background threads, timers are used to schedule regular tasks
+3. Long operations like API calls are done synchronously but with progress updates to keep the user informed
+4. The `watchdog` library's Observer runs in its own thread but interfaces with the main application through callbacks
+
+This design simplifies the application, eliminates thread synchronization issues, and provides a more stable experience for users.
 
 ## Configuration
 
@@ -129,5 +139,6 @@ The application uses a configuration file (`config.ini`) to store:
 
 1. The Hypixel API key
 2. The path to the Minecraft log file
+3. Log polling interval settings
 
 This is managed by the utilities in `src/utils/config.py`. 

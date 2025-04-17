@@ -5,7 +5,6 @@ Monitors Minecraft log file for Hypixel /who command output.
 import os
 import re
 import time
-import threading
 from typing import Callable, List, Optional, Set, Dict
 
 from watchdog.observers import Observer
@@ -40,7 +39,7 @@ class LogEventHandler(FileSystemEventHandler):
 class LogMonitor:
     """
     Monitor the Minecraft log file for Hypixel /who command output.
-    Uses a hybrid approach with file system events and periodic polling.
+    Uses a hybrid approach with file system events and periodic checks.
     """
     
     def __init__(self, callback: Callable[[List[str]], None], team_callback: Optional[Callable[[str, str], None]] = None) -> None:
@@ -56,7 +55,6 @@ class LogMonitor:
         self.team_callback = team_callback
         self.last_position = 0
         self.observer = None
-        self.poll_thread = None
         self.running = False
         self.poll_interval = config.get_polling_interval()  # Get interval from config
         self.last_successful_read = 0  # Timestamp of last successful read
@@ -131,7 +129,7 @@ class LogMonitor:
         
     def start(self) -> None:
         """
-        Start monitoring the log file using both file system events and polling.
+        Start monitoring the log file using file system events.
         """
         if self.running:
             return
@@ -147,29 +145,22 @@ class LogMonitor:
         self.observer.schedule(event_handler, log_dir, recursive=False)
         self.observer.start()
         
-        # Start a polling thread as a backup mechanism for buffered writes
-        self.poll_thread = threading.Thread(target=self._poll_log_file, daemon=True)
-        self.poll_thread.start()
-        
         # Reset the player list when starting monitoring
         self.reset_lobby()
         
         print(f"Started monitoring log file: {self.log_file_path}")
     
-    def _poll_log_file(self) -> None:
+    def check_log_file(self) -> None:
         """
-        Periodically poll the log file for changes, regardless of file system events.
-        This helps catch buffered writes that might not trigger a file system event.
+        Check the log file for changes.
+        This method can be called periodically from the main thread's timer.
         """
-        while self.running:
+        if self.running:
             try:
                 # Force a read of the log file
                 self._process_new_lines(force_read=True)
             except Exception as e:
-                print(f"Error polling log file: {str(e)}")
-            
-            # Wait before polling again
-            time.sleep(self.poll_interval)
+                print(f"Error checking log file: {str(e)}")
     
     def stop(self) -> None:
         """
@@ -185,9 +176,6 @@ class LogMonitor:
             self.observer.stop()
             self.observer.join()
             self.observer = None
-        
-        # The poll_thread will stop when self.running becomes False
-        # We don't need to join it as it's a daemon thread
         
         print("Stopped monitoring log file")
     
@@ -237,52 +225,56 @@ class LogMonitor:
                 pass  # Continue to file reading code
             
             # Read new content - use a small buffer size to reduce OS buffering
-            with open(self.log_file_path, 'r', encoding='utf-8', errors='replace', buffering=1) as file:
-                file.seek(self.last_position)
-                new_content = file.read()
+            with open(self.log_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                # Seek to the last position
+                f.seek(self.last_position)
                 
-                # Only update position if we actually read something or if we're at the end
-                if new_content or current_size == self.last_position:
-                    self.last_position = current_size
-                    self.last_successful_read = time.time()
+                # Read new lines
+                new_content = f.read()
+                
+                # Update the last position
+                self.last_position = f.tell()
+                
+                # Update the last successful read timestamp
+                self.last_successful_read = time.time()
             
-            # Process each line
-            if new_content:
-                player_names_detected = False
-                team_color_changed = False
-                lobby_changed = False
+            # Process each line for player names
+            players = []
+            for line in new_content.splitlines():
+                # Check for lobby changes
+                if self.lobby_join_pattern.search(line):
+                    self.reset_lobby()
+                elif self.game_start_pattern.search(line):
+                    self.reset_lobby()
                 
-                for line in new_content.splitlines():
-                    # Check for lobby/game state changes
-                    if self.lobby_join_pattern.search(line) or self.game_start_pattern.search(line):
-                        self.reset_lobby()
-                        lobby_changed = True
-                        continue
-                        
-                    # Check for player list
-                    player_names = self._parse_who_output(line)
-                    if player_names:
-                        # Update all_players set with new players
-                        self.all_players.update(player_names)
-                        player_names_detected = True
+                # Try to extract team color information
+                self._parse_team_color_info(line)
+                
+                # Try to extract player names from who command
+                line_players = self._parse_who_output(line)
+                if line_players:
+                    # Add these players to the running list
+                    for player in line_players:
+                        # Add to the set of all players
+                        self.all_players.add(player)
                     
-                    # Check for team color information
-                    if self._parse_team_color_info(line):
-                        team_color_changed = True
+                    # Add these players to the lobby update
+                    players.extend(line_players)
+            
+            # If we have players, call the callback with all the accumulated players
+            if players:
+                # Get a full list of all players that have been seen recently
+                unique_players = list(self.all_players)
                 
-                # After processing all lines, send the complete player list if we detected new players
-                if player_names_detected or team_color_changed or lobby_changed:
-                    # Convert set back to list for callback
-                    if self.all_players:
-                        self.callback(list(self.all_players))
+                # Note: We used to always trigger callback with a list of all players,
+                # but now we're more selective - only trigger for what was actually found
+                if self.callback and players:
+                    print(f"Found {len(players)} players from /who command")
+                    
+                    # Use the direct players list from the /who command for better UX
+                    # This allows incremental updates rather than always sending all players
+                    self.callback(players)
                 
-                # If no player names were detected but team information changed
-                # we might want to notify the UI to update with the latest team information
-                elif team_color_changed and not player_names_detected:
-                    player_names = list(self.player_teams.keys())
-                    if player_names:
-                        self.callback(player_names)
-        
         except Exception as e:
             print(f"Error processing log file: {str(e)}")
     

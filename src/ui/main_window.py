@@ -218,33 +218,34 @@ class LogFileDialog(QDialog):
         """
         return self.log_path_input.text().strip()
 
-class StatsWorker(QObject):
+class StatsProcessor:
     """
-    Worker thread for fetching player stats in the background.
+    Process player stats synchronously.
+    This is a replacement for the threaded version to simplify the application.
     """
-    finished = pyqtSignal(list)  # Signal emitted with processed player stats
-    error = pyqtSignal(str)      # Signal emitted when an error occurs
-    progress = pyqtSignal(int)   # Signal to update progress (0-100)
     
     def __init__(self, usernames: List[str], api_client: ApiClient, existing_stats: List[Dict[str, Any]] = None) -> None:
         """
-        Initialize the worker with usernames and API client.
+        Initialize the stats processor.
         
         Args:
             usernames: List of usernames to fetch stats for.
             api_client: The API client to use.
             existing_stats: List of existing player stats to preserve.
         """
-        super().__init__()
         self.usernames = usernames
         self.api_client = api_client
-        self.is_running = True
-        self.existing_stats = existing_stats
-    
-    def process(self) -> None:
+        self.existing_stats = existing_stats if existing_stats else []
+        
+    def process(self, progress_callback=None) -> List[Dict[str, Any]]:
         """
         Process the usernames and fetch player stats.
-        Emits the finished signal with the processed stats.
+        
+        Args:
+            progress_callback: Optional callback function to report progress (0-100)
+            
+        Returns:
+            List[Dict[str, Any]]: The processed player stats
         """
         all_player_stats = []
         total_players = max(1, len(self.usernames))  # Ensure total_players is at least 1 to avoid division by zero
@@ -256,25 +257,45 @@ class StatsWorker(QObject):
         
         try:
             for i, username in enumerate(self.usernames):
-                if not self.is_running:
-                    break
-                
                 # Skip players we already have stats for
                 if self.existing_stats and any(player.get('username') == username for player in self.existing_stats):
                     # Count skipped players in progress calculation
                     processed_count += 1
-                    progress_percent = min(99, int((processed_count / total_players) * 100))
-                    self.progress.emit(progress_percent)
+                    if progress_callback:
+                        progress_percent = min(99, int((processed_count / total_players) * 100))
+                        progress_callback(progress_percent)
                     continue
                 
                 try:
                     # Update progress - make sure we don't reach 100% until completely done
                     processed_count += 1
-                    progress_percent = min(99, int((processed_count / total_players) * 100))
-                    self.progress.emit(progress_percent)
+                    if progress_callback:
+                        progress_percent = min(99, int((processed_count / total_players) * 100))
+                        progress_callback(progress_percent)
                     
                     # Get UUID for the username
-                    uuid = self.api_client.get_uuid(username)
+                    try:
+                        uuid = self.api_client.get_uuid(username)
+                    except ValueError as e:
+                        # If player not found in Mojang API, they are definitely nicked
+                        if "Player '" in str(e) and "not found" in str(e):
+                            print(f"Player {username} is definitely nicked (not found in Mojang API)")
+                            placeholder_stats = {
+                                'username': username,
+                                'bedwars_stars': '?',
+                                'fkdr': '?',
+                                'wlr': '?',
+                                'level': '?',
+                                'achievement_points': '?',
+                                'nick_probability': 1.0,  # 100% certain they're nicked
+                                'nick_estimate': 'Confirmed Nick',
+                                'is_placeholder': True  # Mark as placeholder for display purposes
+                            }
+                            all_player_stats.append(placeholder_stats)
+                            continue
+                        else:
+                            # Re-raise other errors
+                            raise
                     
                     # Get player stats
                     player_data = self.api_client.get_player_stats(uuid)
@@ -289,7 +310,26 @@ class StatsWorker(QObject):
                     # Create placeholder stats for players that can't be found (likely nicked)
                     print(f"Error processing player {username}: {str(e)}")
                     
-                    # Create more complete placeholder stats for nicked players with '?' as values
+                    # Check if this is a Hypixel API error indicating player hasn't played Hypixel
+                    is_confirmed_nick = False
+                    error_msg = str(e).lower()
+                    
+                    if "player with uuid" in error_msg and "not found" in error_msg:
+                        # This means they have a real Minecraft account but haven't played Hypixel
+                        # Not necessarily a nick, so mark with lower probability
+                        nick_probability = 0.6
+                        nick_estimate = "Probable Nick"
+                    elif "failed to get uuid" in error_msg:
+                        # If we couldn't get UUID from Mojang, they're definitely nicked
+                        nick_probability = 1.0
+                        nick_estimate = "Confirmed Nick"
+                        is_confirmed_nick = True
+                    else:
+                        # Other errors - use high probability but not certain
+                        nick_probability = 0.9
+                        nick_estimate = "Highly Likely Nick"
+                    
+                    # Create placeholder stats with appropriate nick probability
                     placeholder_stats = {
                         'username': username,
                         'bedwars_stars': '?',
@@ -297,61 +337,82 @@ class StatsWorker(QObject):
                         'wlr': '?',
                         'level': '?',
                         'achievement_points': '?',
-                        'nick_probability': 0.9,  # High probability of being nicked
-                        'nick_estimate': 'Highly Likely Nick',
-                        'is_placeholder': True  # Mark as placeholder for display purposes
+                        'nick_probability': nick_probability,
+                        'nick_estimate': nick_estimate,
+                        'is_placeholder': True,  # Mark as placeholder for display purposes
+                        'is_confirmed_nick': is_confirmed_nick
                     }
                     all_player_stats.append(placeholder_stats)
             
-            # Rank the players
-            if all_player_stats and self.is_running:
-                # Only rank players with actual numeric stats
-                valid_players = [p for p in all_player_stats if not p.get('is_placeholder', False)]
-                placeholder_players = [p for p in all_player_stats if p.get('is_placeholder', False)]
+            # Process the final stats
+            final_stats = self._process_final_stats(all_player_stats)
+            
+            # Emit 100% progress if callback provided
+            if progress_callback:
+                progress_callback(100)
                 
-                # Rank the valid players
-                ranked_valid_stats = ranking_engine.rank_players(valid_players) if valid_players else []
-                
-                # Add placeholders at the end with incrementing ranks
-                final_stats = []
-                
-                # Add valid ranked players
-                for idx, player in enumerate(ranked_valid_stats):
-                    player['rank'] = idx + 1
-                    final_stats.append(player)
-                
-                # Add placeholder players with ranks after the valid players
-                for idx, player in enumerate(placeholder_players):
-                    player['rank'] = len(ranked_valid_stats) + idx + 1
-                    final_stats.append(player)
-                
-                # Calculate nick probabilities for players with real stats
-                for player in final_stats:
-                    if not player.get('is_placeholder', False) and not player.get('nick_probability'):
+            return final_stats
+            
+        except Exception as e:
+            # Make sure to emit 100% progress on error
+            if progress_callback:
+                progress_callback(100)
+            print(f"Error fetching player stats: {str(e)}")
+            # Return whatever we have so far
+            return all_player_stats
+    
+    def _process_final_stats(self, player_stats: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Process the final stats, including ranking and nick detection.
+        
+        Args:
+            player_stats: List of player stats to process
+            
+        Returns:
+            List[Dict[str, Any]]: Processed player stats
+        """
+        if not player_stats:
+            return []
+        
+        try:
+            # Only rank players with actual numeric stats
+            valid_players = [p for p in player_stats if not p.get('is_placeholder', False)]
+            placeholder_players = [p for p in player_stats if p.get('is_placeholder', False)]
+            
+            # Rank the valid players
+            ranked_valid_stats = ranking_engine.rank_players(valid_players) if valid_players else []
+            
+            # Add placeholders at the end with incrementing ranks
+            final_stats = []
+            
+            # Add valid ranked players
+            for idx, player in enumerate(ranked_valid_stats):
+                player['rank'] = idx + 1
+                final_stats.append(player)
+            
+            # Add placeholder players with ranks after the valid players
+            for idx, player in enumerate(placeholder_players):
+                player['rank'] = len(ranked_valid_stats) + idx + 1
+                final_stats.append(player)
+            
+            # Calculate nick probabilities for players with real stats
+            for player in final_stats:
+                if not player.get('is_placeholder', False) and not player.get('nick_probability'):
+                    try:
                         nick_score = nick_detector.estimate_if_nicked(player)
                         player['nick_probability'] = nick_score
                         player['nick_estimate'] = nick_detector.get_nick_probability_description(nick_score)
-                
-                # Emit 100% progress after all processing is complete
-                self.progress.emit(100)
-                
-                # Emit the result
-                self.finished.emit(final_stats)
-            else:
-                # Emit 100% progress even if we have no results
-                self.progress.emit(100)
-                self.finished.emit([])
+                    except Exception as e:
+                        # If nick detection fails, use a default
+                        print(f"Error calculating nick probability for {player.get('username')}: {str(e)}")
+                        player['nick_probability'] = 0.0
+                        player['nick_estimate'] = "Unknown"
             
+            return final_stats
         except Exception as e:
-            # Make sure to emit 100% progress even on error
-            self.progress.emit(100)
-            self.error.emit(f"Error fetching player stats: {str(e)}")
-    
-    def stop(self) -> None:
-        """
-        Stop the worker.
-        """
-        self.is_running = False
+            print(f"Error in _process_final_stats: {str(e)}")
+            # Return the original stats if something goes wrong
+            return player_stats
 
 class SettingsDialog(QDialog):
     """
@@ -908,8 +969,6 @@ class MainWindow(QMainWindow):
         
         # Start the log monitor
         self.log_monitor = LogMonitor(self.handle_lobby_update, self.update_player_team)
-        self.worker_thread = None
-        self.worker = None
         
         # Store current player stats for team color updates
         self.current_player_stats = []
@@ -917,21 +976,37 @@ class MainWindow(QMainWindow):
         # Start the log monitor
         self.start_monitoring()
         
-        # Set up periodic refresh timer
-        self._setup_refresh_timer()
+        # Set up timers
+        self._setup_timers()
     
-    def _setup_refresh_timer(self) -> None:
+    def _setup_timers(self) -> None:
         """
-        Set up a timer to periodically refresh the player list from the log file.
-        This helps ensure we don't miss any players, especially with the /who command.
+        Set up timers for periodic tasks.
         """
-        # Create a timer that triggers every 30 seconds
-        self.refresh_timer = QTimer(self)
+        # Create a timer for log file checking
+        self.log_check_timer = QTimer()
+        self.log_check_timer.setParent(self)  # Explicitly set parent
+        log_poll_interval = config.get_polling_interval() * 1000  # Convert seconds to milliseconds
+        self.log_check_timer.setInterval(log_poll_interval)
+        self.log_check_timer.timeout.connect(self._check_log_file)
+        self.log_check_timer.start()
+        
+        # Create a timer for periodic refresh
+        self.refresh_timer = QTimer()
+        self.refresh_timer.setParent(self)  # Explicitly set parent
         self.refresh_timer.setInterval(30000)  # 30 seconds in milliseconds
         self.refresh_timer.timeout.connect(self.refresh_log)
         self.refresh_timer.start()
         
-        print("Set up periodic refresh timer - will refresh every 30 seconds")
+        print(f"Set up timers - log check every {log_poll_interval/1000} seconds, refresh every 30 seconds")
+    
+    def _check_log_file(self) -> None:
+        """
+        Periodically check the log file for changes.
+        Called by the log_check_timer.
+        """
+        if hasattr(self, 'log_monitor') and self.log_monitor and self.log_monitor.running:
+            self.log_monitor.check_log_file()
     
     def open_settings(self) -> None:
         """
@@ -1236,30 +1311,28 @@ class MainWindow(QMainWindow):
         # Store the complete list of usernames for reference
         self.all_lobby_usernames = usernames.copy()
         
-        # Clear the current stats
-        self.table.clearContents()
-        self.table.setRowCount(0)
-        self.current_player_stats = []
-
         # Show loading animation
         self.fetch_progress.setValue(0)
         self.fetch_progress.setMaximum(len(usernames))
         self.fetch_progress.show()
         
-        # Create worker thread to fetch stats
-        self.stats_worker = StatsWorker(usernames, self.api_client)
+        # Create a stats processor and process the usernames
+        processor = StatsProcessor(usernames, self.api_client)
         
-        # Connect signals
-        self.stats_worker.progress.connect(self.update_progress)
-        self.stats_worker.error.connect(self.handle_error)
-        self.stats_worker.finished.connect(self.process_player_stats)
-        
-        # Start worker
-        self.stats_thread = QThread()
-        self.stats_worker.moveToThread(self.stats_thread)
-        self.stats_thread.started.connect(self.stats_worker.process)
-        self.stats_thread.start()
-
+        try:
+            # Process the stats synchronously, with a progress callback
+            player_stats = processor.process(progress_callback=self.update_progress)
+            
+            # Process the results
+            self.process_player_stats(player_stats)
+            
+        except Exception as e:
+            print(f"Error processing player stats: {str(e)}")
+            self.handle_error(f"Error fetching player stats: {str(e)}")
+            
+            # Hide the progress bar
+            self.fetch_progress.hide()
+    
     def process_player_stats(self, player_stats):
         """
         Process the final player stats received from the worker.
@@ -1319,8 +1392,15 @@ class MainWindow(QMainWindow):
                 # Rank column
                 rank_item = QTableWidgetItem()
                 rank = player.get('rank', row + 1)  # Default to row+1 if rank not present
-                rank_item.setData(Qt.ItemDataRole.DisplayRole, str(rank))
-                rank_item.setData(Qt.ItemDataRole.UserRole, int(rank))  # Store as integer for sorting
+                try:
+                    rank_value = int(rank)
+                    # Force numeric sorting by using the UserRole
+                    rank_item.setData(Qt.ItemDataRole.DisplayRole, rank_value)
+                    rank_item.setData(Qt.ItemDataRole.UserRole, rank_value)
+                except (ValueError, TypeError):
+                    rank_value = row + 1
+                rank_item.setData(Qt.ItemDataRole.DisplayRole, rank_value)
+                rank_item.setData(Qt.ItemDataRole.UserRole, rank_value)
                 rank_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 0, rank_item)
                 
@@ -1390,10 +1470,10 @@ class MainWindow(QMainWindow):
                         stars_item.setData(Qt.ItemDataRole.UserRole, stars_value)  # Store as integer for sorting
                     except (ValueError, TypeError):
                         stars_item.setText(str(stars))
-                        stars_item.setData(Qt.ItemDataRole.UserRole, 0)  # Default for sorting
+                        stars_item.setData(Qt.ItemDataRole.UserRole, -999)  # Default for sorting
                 else:
                     stars_item.setText('?')
-                    stars_item.setData(Qt.ItemDataRole.UserRole, -1)  # Place ? at the bottom when sorting
+                    stars_item.setData(Qt.ItemDataRole.UserRole, -1000)  # Place ? at the bottom when sorting
                 stars_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 3, stars_item)
                 
@@ -1407,10 +1487,10 @@ class MainWindow(QMainWindow):
                         fkdr_item.setData(Qt.ItemDataRole.UserRole, fkdr_value)  # Store as float for sorting
                     except (ValueError, TypeError):
                         fkdr_item.setText(str(fkdr))
-                        fkdr_item.setData(Qt.ItemDataRole.UserRole, 0.0)  # Default for sorting
+                        fkdr_item.setData(Qt.ItemDataRole.UserRole, -999.0)  # Default for sorting
                 else:
                     fkdr_item.setText('?')
-                    fkdr_item.setData(Qt.ItemDataRole.UserRole, -1.0)  # Place ? at the bottom when sorting
+                    fkdr_item.setData(Qt.ItemDataRole.UserRole, -1000.0)  # Place ? at the bottom when sorting
                 fkdr_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 4, fkdr_item)
                 
@@ -1424,10 +1504,10 @@ class MainWindow(QMainWindow):
                         wlr_item.setData(Qt.ItemDataRole.UserRole, wlr_value)  # Store as float for sorting
                     except (ValueError, TypeError):
                         wlr_item.setText(str(wlr))
-                        wlr_item.setData(Qt.ItemDataRole.UserRole, 0.0)  # Default for sorting
+                        wlr_item.setData(Qt.ItemDataRole.UserRole, -999.0)  # Default for sorting
                 else:
                     wlr_item.setText('?')
-                    wlr_item.setData(Qt.ItemDataRole.UserRole, -1.0)  # Place ? at the bottom when sorting
+                    wlr_item.setData(Qt.ItemDataRole.UserRole, -1000.0)  # Place ? at the bottom when sorting
                 wlr_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 5, wlr_item)
                 
@@ -1435,11 +1515,18 @@ class MainWindow(QMainWindow):
                 nick_est_item = QTableWidgetItem(player.get('nick_estimate', ''))
                 # Highlight suspected nicks
                 nick_probability = player.get('nick_probability', 0.0)
-                if nick_probability > 0.7:  # Highly likely nicks
+                is_confirmed_nick = player.get('is_confirmed_nick', False)
+                
+                if is_confirmed_nick or nick_probability >= 1.0:  # Confirmed nicks
+                    nick_est_item.setBackground(QColor(200, 0, 0))  # Darker red for confirmed nicks
+                    nick_est_item.setForeground(QColor(255, 255, 255))  # White text for readability
+                elif nick_probability > 0.7:  # Highly likely nicks
                     nick_est_item.setBackground(QColor(255, 100, 100))  # Red background
                 elif nick_probability > 0.4:  # Possible nicks
                     nick_est_item.setBackground(QColor(255, 200, 100))  # Orange background
                 nick_est_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                # Store the nick probability for sorting
+                nick_est_item.setData(Qt.ItemDataRole.UserRole, nick_probability)
                 self.table.setItem(row, 6, nick_est_item)
                 
                 # AP column
@@ -1452,15 +1539,27 @@ class MainWindow(QMainWindow):
                         ap_item.setData(Qt.ItemDataRole.UserRole, ap_value)  # Store as integer for sorting
                     except (ValueError, TypeError):
                         ap_item.setText(str(ap))
-                        ap_item.setData(Qt.ItemDataRole.UserRole, 0)  # Default for sorting
+                        ap_item.setData(Qt.ItemDataRole.UserRole, -999)  # Default for sorting
                 else:
                     ap_item.setText('?')
-                    ap_item.setData(Qt.ItemDataRole.UserRole, -1)  # Place ? at the bottom when sorting
+                    ap_item.setData(Qt.ItemDataRole.UserRole, -1000)  # Place ? at the bottom when sorting
                 ap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 7, ap_item)
                 
+            # Apply initial sort to rank column
+            header = self.table.horizontalHeader()
+            current_sort_column = header.sortIndicatorSection()
+            current_sort_order = header.sortIndicatorOrder()
+            
             # Re-enable sorting
             self.table.setSortingEnabled(True)
+            
+            # If we have a sort column, apply it
+            if current_sort_column >= 0:
+                self.table.sortByColumn(current_sort_column, current_sort_order)
+            else:
+                # Default sort by rank
+                self.table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
             
             # Update lobby status
             self.lobby_status.setText(f"{len(self.current_player_stats)} players")
@@ -1573,13 +1672,11 @@ class MainWindow(QMainWindow):
         # Stop the log monitor
         self.stop_monitoring()
         
-        # Stop any running worker thread
-        if self.worker_thread and self.worker_thread.isRunning():
-            worker = self.worker_thread.findChild(StatsWorker)
-            if worker:
-                worker.stop()
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        # Stop all timers
+        if hasattr(self, 'log_check_timer'):
+            self.log_check_timer.stop()
+        if hasattr(self, 'refresh_timer'):
+            self.refresh_timer.stop()
         
         # Accept the event
         event.accept()
@@ -1675,31 +1772,28 @@ class MainWindow(QMainWindow):
         Args:
             column_index: The index of the column to sort by
         """
-        try:
-            # Get the current sort indicator to toggle it
-            header = self.table.horizontalHeader()
-            
-            # If we're clicking the same column that's already sorted,
-            # toggle the sort order between ascending and descending
-            if header.sortIndicatorSection() == column_index:
-                if header.sortIndicatorOrder() == Qt.SortOrder.AscendingOrder:
-                    new_order = Qt.SortOrder.DescendingOrder
-                else:
-                    new_order = Qt.SortOrder.AscendingOrder
+        # Get the current sort indicator
+        header = self.table.horizontalHeader()
+        
+        # If this column is already being sorted, toggle the order
+        if header.sortIndicatorSection() == column_index:
+            # Toggle order (if ascending, make descending and vice versa)
+            if header.sortIndicatorOrder() == Qt.SortOrder.AscendingOrder:
+                new_order = Qt.SortOrder.DescendingOrder
             else:
-                # Default sort orders for different columns
-                if column_index == 0:  # Rank - low values are better (ascending)
-                    new_order = Qt.SortOrder.AscendingOrder
-                elif column_index in [3, 4, 5, 7]:  # Stars, FKDR, WLR, AP - high values are better (descending)
-                    new_order = Qt.SortOrder.DescendingOrder
-                else:
-                    new_order = Qt.SortOrder.AscendingOrder
-            
-            # Apply the sort
-            self.table.sortByColumn(column_index, new_order)
-        except Exception as e:
-            print(f"Error sorting table: {str(e)}")
-            self.handle_error(f"Error sorting table: {str(e)}")
+                new_order = Qt.SortOrder.AscendingOrder
+        else:
+            # Default orders based on column type
+            if column_index == 0:  # Rank
+                new_order = Qt.SortOrder.AscendingOrder
+            elif column_index in [3, 4, 5, 7]:  # Stars, FKDR, WLR, AP
+                new_order = Qt.SortOrder.DescendingOrder
+            else:
+                new_order = Qt.SortOrder.AscendingOrder
+        
+        # Apply sort indicator directly without using sortItems
+        # This ensures Qt handles the sort event internally
+        self.table.horizontalHeader().setSortIndicator(column_index, new_order)
 
     def update_status(self, message: str) -> None:
         """

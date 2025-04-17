@@ -1,49 +1,57 @@
-# Hypixel Stats Companion App
+# AI Documentation for Hypixel Stats Companion
 
-This directory contains context documentation for AI assistance with the Hypixel Stats Companion App.
+This directory contains documentation to help AI assistants understand the codebase of the Hypixel Stats Companion application. Each file focuses on different aspects of the application design, implementation, and architecture.
 
-## Project Overview
+## Key Files
 
-The Hypixel Stats Companion App is a desktop application that provides real-time statistics and analysis for Hypixel players. It monitors Minecraft log files to detect players in the current game lobby and displays their statistics, allowing users to gauge the skill level of opponents and teammates.
+- [Architecture Overview](architecture.md): High-level architecture, component interactions, and data flow
+- [Developer Notes](developer_notes.md): Notes and considerations for developers, including tech stack and improvement areas
+- [Data Models](data_models.md): Description of the key data structures used throughout the application
+- [Testing Strategy](testing_strategy.md): Overview of the testing approach for the application
 
-## Core Modules
+## Application Overview
 
-- **ApiClient**: Handles communication with Hypixel and Mojang APIs, including authentication, rate limiting, and error handling.
-- **LogMonitor**: Monitors the Minecraft log file for the Hypixel `/who` command output to detect players in the current lobby.
-- **StatsProcessor**: Processes raw player stats from the Hypixel API into usable data, including calculating key metrics like FKDR and WLR.
-- **RankingEngine**: Sorts players based on their statistics, allowing for identification of the most skilled players.
-- **NickDetector**: Implements basic heuristics to estimate if a player is using a nickname ("nicked").
-- **MainWindow**: The PyQt6-based user interface that displays player statistics and handles user interactions.
+The Hypixel Stats Companion is a desktop application that helps Minecraft players analyze their opponents in Hypixel Bedwars games. It:
+
+1. Monitors the Minecraft log file for `/who` command output to detect players in the current lobby
+2. Fetches player statistics from the Hypixel API
+3. Ranks players based on their skill level (stars, FKDR, WLR)
+4. Attempts to detect "nicked" players (players using alternate accounts to hide their true skill level)
+5. Displays all this information in a sortable table
+
+## Technical Highlights
+
+- Written in **Python** with **PyQt6** for the user interface
+- Uses a **single-threaded event-driven design** with timers for periodic tasks
+- Leverages the **watchdog** library for file system monitoring
+- Communicates with both the **Mojang API** (UUID lookups) and **Hypixel API** (player stats)
+- Implements custom statistics processing, ranking algorithms, and nick detection heuristics
 
 ## Directory Structure
 
 ```
-hypixel-stats-companion/
-├── src/                    # Main source code
-│   ├── ui/                 # User interface components
-│   ├── utils/              # Utility functions and helpers
-│   ├── api_client.py       # API client for Hypixel and Mojang
-│   ├── log_monitor.py      # Minecraft log file monitor
-│   ├── stats_processor.py  # Player statistics processor
-│   ├── ranking_engine.py   # Player ranking algorithms
-│   ├── nick_detector.py    # Nickname detection heuristics
-│   └── main.py             # Application entry point
-├── tests/                  # Test cases
-├── ai/                     # AI context documentation (this directory)
-│   ├── apis/               # API documentation
-│   ├── core_logic/         # Core logic documentation
-│   └── prompt_addons/      # AI prompt templates
-└── .gitignore, requirements.txt, etc.
+/ai
+├── README.md               # This file
+├── architecture.md         # Architecture overview
+├── data_models.md          # Data structure documentation
+├── developer_notes.md      # Notes for developers
+├── testing_strategy.md     # Testing approach
+├── apis/                   # API documentation
+├── core_logic/             # Documentation for core logic components
+└── prompt_addons/          # Additional prompts for AI assistance
 ```
 
-## Purpose of the /ai Directory
+## Key Concepts
 
-This directory serves as context for AI assistants to understand the project structure, architecture, and implementation details. It contains documentation on:
+- **Log Monitor**: Watches the Minecraft log file for player information
+- **API Client**: Handles communication with external APIs
+- **Stats Processor**: Transforms raw API data into usable statistics
+- **Ranking Engine**: Sorts and ranks players based on skill metrics
+- **Nick Detector**: Uses heuristics to identify players using nicknames
 
-1. The architecture and design of the application
-2. API endpoints and data models used
-3. Core algorithms and heuristics
-4. Testing strategies
-5. Developer notes on known issues and improvement areas
+## Implementation Notes
 
-This documentation helps AI assistants provide more accurate and contextually relevant assistance when working with the codebase. 
+- The application uses a **single-threaded design** with Qt's event loop and timers
+- Long operations provide progress feedback to maintain UI responsiveness
+- File system monitoring via **watchdog** runs in a separate thread but interacts with the main thread via callbacks
+- The UI is designed to be sortable and filterable for easy analysis of player stats 

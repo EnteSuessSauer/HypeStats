@@ -59,6 +59,9 @@ if time_since_last_request < 0.5:  # Wait at least 0.5 seconds between requests
     "karma": 5000,
     "firstLogin": 1577836800000,
     "lastLogin": 1609459200000,
+    "achievements": {
+      "bedwars_level": 120
+    },
     "stats": {
       "Bedwars": {
         "Experience": 12345,
@@ -84,7 +87,8 @@ The `StatsProcessor` extracts and processes the following fields:
 - `karma`: Karma points earned
 - `firstLogin`: Timestamp of first login (used for nick detection)
 - `lastLogin`: Timestamp of last login
-- `stats.Bedwars.Experience`: Used to calculate Bedwars star level
+- `achievements.bedwars_level`: Directly gives Bedwars star level (primary source)
+- `stats.Bedwars.Experience`: Used as fallback to calculate Bedwars star level if not available in achievements
 - `stats.Bedwars.wins_bedwars`: Bedwars wins
 - `stats.Bedwars.losses_bedwars`: Bedwars losses
 - `stats.Bedwars.final_kills_bedwars`: Bedwars final kills

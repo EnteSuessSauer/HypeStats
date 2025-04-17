@@ -77,14 +77,27 @@ def calculate_wlr(player_stats: Dict[str, Any]) -> float:
 
 def get_bedwars_stars(player_stats: Dict[str, Any]) -> int:
     """
-    Calculate Bedwars star level from the experience value.
+    Get Bedwars star level.
+    First tries to get it directly from achievements.bedwars_level,
+    then falls back to calculating it from experience if not available.
     
     Args:
         player_stats: The raw player stats dictionary from the Hypixel API.
         
     Returns:
-        int: The calculated Bedwars star level.
+        int: The Bedwars star level.
     """
+    # First try to get stars directly from achievements
+    bedwars_level = get_nested_value(player_stats, ['achievements', 'bedwars_level'], None)
+    
+    # If we found it in achievements, return it
+    if bedwars_level is not None:
+        try:
+            return int(bedwars_level)
+        except (ValueError, TypeError):
+            pass  # Fall back to calculating from experience
+    
+    # Fall back to calculating from experience
     experience = get_nested_value(player_stats, ['stats', 'Bedwars', 'Experience'], 0)
     
     # Convert to integer in case it's a string
