@@ -1,13 +1,15 @@
 """
 Main window for the Hypixel Stats Companion App.
+The application uses a predominantly single-threaded design with minimal threading to ensure stability.
+UI responsiveness is maintained through batch processing with event updates between operations.
 """
 import sys
-import threading
 import time
 import os
 from typing import List, Dict, Any, Optional
 
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread, QTimer
+# We still need QCoreApplication for processEvents to keep UI responsive
+from PyQt6.QtCore import Qt, QTimer, QCoreApplication
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
@@ -220,8 +222,9 @@ class LogFileDialog(QDialog):
 
 class StatsProcessor:
     """
-    Process player stats synchronously.
-    This is a replacement for the threaded version to simplify the application.
+    Process player stats synchronously in the main thread.
+    This class minimizes threading complexity by processing data in batches with UI updates between operations.
+    Uses QCoreApplication.processEvents() to maintain UI responsiveness during long operations.
     """
     
     def __init__(self, usernames: List[str], api_client: ApiClient, existing_stats: List[Dict[str, Any]] = None) -> None:
@@ -240,6 +243,7 @@ class StatsProcessor:
     def process(self, progress_callback=None) -> List[Dict[str, Any]]:
         """
         Process the usernames and fetch player stats.
+        This method runs in the main thread and updates progress through callbacks.
         
         Args:
             progress_callback: Optional callback function to report progress (0-100)
@@ -256,105 +260,113 @@ class StatsProcessor:
             all_player_stats = self.existing_stats.copy()
         
         try:
-            for i, username in enumerate(self.usernames):
-                # Skip players we already have stats for
-                if self.existing_stats and any(player.get('username') == username for player in self.existing_stats):
-                    # Count skipped players in progress calculation
-                    processed_count += 1
-                    if progress_callback:
-                        progress_percent = min(99, int((processed_count / total_players) * 100))
-                        progress_callback(progress_percent)
-                    continue
-                
-                try:
-                    # Update progress - make sure we don't reach 100% until completely done
-                    processed_count += 1
-                    if progress_callback:
-                        progress_percent = min(99, int((processed_count / total_players) * 100))
-                        progress_callback(progress_percent)
+            # Process usernames in batches of 10 to improve responsiveness
+            batch_size = 10
+            batched_usernames = [self.usernames[i:i + batch_size] for i in range(0, len(self.usernames), batch_size)]
+            
+            for batch in batched_usernames:
+                for username in batch:
+                    # Skip players we already have stats for
+                    if self.existing_stats and any(player.get('username') == username for player in self.existing_stats):
+                        # Count skipped players in progress calculation
+                        processed_count += 1
+                        if progress_callback:
+                            progress_percent = min(99, int((processed_count / total_players) * 100))
+                            progress_callback(progress_percent)
+                        continue
                     
-                    # Get UUID for the username
                     try:
-                        uuid = self.api_client.get_uuid(username)
-                    except ValueError as e:
-                        # If player not found in Mojang API, they are definitely nicked
-                        if "Player '" in str(e) and "not found" in str(e):
-                            print(f"Player {username} is definitely nicked (not found in Mojang API)")
-                            placeholder_stats = {
-                                'username': username,
-                                'bedwars_stars': '?',
-                                'fkdr': '?',
-                                'wlr': '?',
-                                'level': '?',
-                                'achievement_points': '?',
-                                'nick_probability': 1.0,  # 100% certain they're nicked
-                                'nick_estimate': 'Confirmed Nick',
-                                'is_placeholder': True  # Mark as placeholder for display purposes
-                            }
-                            all_player_stats.append(placeholder_stats)
-                            continue
+                        # Update progress - make sure we don't reach 100% until completely done
+                        processed_count += 1
+                        if progress_callback:
+                            progress_percent = min(99, int((processed_count / total_players) * 100))
+                            progress_callback(progress_percent)
+                        
+                        # Get UUID for the username
+                        try:
+                            uuid = self.api_client.get_uuid(username)
+                        except ValueError as e:
+                            # If player not found in Mojang API, they are definitely nicked
+                            if "Player '" in str(e) and "not found" in str(e):
+                                print(f"Player {username} is definitely nicked (not found in Mojang API)")
+                                placeholder_stats = {
+                                    'username': username,
+                                    'bedwars_stars': '?',
+                                    'fkdr': '?',
+                                    'wlr': '?',
+                                    'level': '?',
+                                    'achievement_points': '?',
+                                    'nick_probability': 1.0,  # 100% certain they're nicked
+                                    'nick_estimate': 'Confirmed Nick',
+                                    'is_placeholder': True  # Mark as placeholder for display purposes
+                                }
+                                all_player_stats.append(placeholder_stats)
+                                continue
+                            else:
+                                # Re-raise other errors
+                                raise
+                        
+                        # Get player stats
+                        player_data = self.api_client.get_player_stats(uuid)
+                        
+                        # Process the stats
+                        processed_stats = stats_processor.extract_relevant_stats(player_data)
+                        
+                        # Add to the list
+                        all_player_stats.append(processed_stats)
+                    
+                    except Exception as e:
+                        # Create placeholder stats for players that can't be found (likely nicked)
+                        print(f"Error processing player {username}: {str(e)}")
+                        
+                        # Check if this is a Hypixel API error indicating player hasn't played Hypixel
+                        is_confirmed_nick = False
+                        error_msg = str(e).lower()
+                        
+                        if "player with uuid" in error_msg and "not found" in error_msg:
+                            # This means they have a real Minecraft account but haven't played Hypixel
+                            # Not necessarily a nick, so mark with lower probability
+                            nick_probability = 0.6
+                            nick_estimate = "Probable Nick"
+                        elif "failed to get uuid" in error_msg:
+                            # If we couldn't get UUID from Mojang, they're definitely nicked
+                            nick_probability = 1.0
+                            nick_estimate = "Confirmed Nick"
+                            is_confirmed_nick = True
                         else:
-                            # Re-raise other errors
-                            raise
-                    
-                    # Get player stats
-                    player_data = self.api_client.get_player_stats(uuid)
-                    
-                    # Process the stats
-                    processed_stats = stats_processor.extract_relevant_stats(player_data)
-                    
-                    # Add to the list
-                    all_player_stats.append(processed_stats)
+                            # Other errors - use high probability but not certain
+                            nick_probability = 0.9
+                            nick_estimate = "Highly Likely Nick"
+                        
+                        # Create placeholder stats with appropriate nick probability
+                        placeholder_stats = {
+                            'username': username,
+                            'bedwars_stars': '?',
+                            'fkdr': '?',
+                            'wlr': '?',
+                            'level': '?',
+                            'achievement_points': '?',
+                            'nick_probability': nick_probability,
+                            'nick_estimate': nick_estimate,
+                            'is_placeholder': True,  # Mark as placeholder for display purposes
+                            'is_confirmed_nick': is_confirmed_nick
+                        }
+                        all_player_stats.append(placeholder_stats)
                 
-                except Exception as e:
-                    # Create placeholder stats for players that can't be found (likely nicked)
-                    print(f"Error processing player {username}: {str(e)}")
-                    
-                    # Check if this is a Hypixel API error indicating player hasn't played Hypixel
-                    is_confirmed_nick = False
-                    error_msg = str(e).lower()
-                    
-                    if "player with uuid" in error_msg and "not found" in error_msg:
-                        # This means they have a real Minecraft account but haven't played Hypixel
-                        # Not necessarily a nick, so mark with lower probability
-                        nick_probability = 0.6
-                        nick_estimate = "Probable Nick"
-                    elif "failed to get uuid" in error_msg:
-                        # If we couldn't get UUID from Mojang, they're definitely nicked
-                        nick_probability = 1.0
-                        nick_estimate = "Confirmed Nick"
-                        is_confirmed_nick = True
-                    else:
-                        # Other errors - use high probability but not certain
-                        nick_probability = 0.9
-                        nick_estimate = "Highly Likely Nick"
-                    
-                    # Create placeholder stats with appropriate nick probability
-                    placeholder_stats = {
-                        'username': username,
-                        'bedwars_stars': '?',
-                        'fkdr': '?',
-                        'wlr': '?',
-                        'level': '?',
-                        'achievement_points': '?',
-                        'nick_probability': nick_probability,
-                        'nick_estimate': nick_estimate,
-                        'is_placeholder': True,  # Mark as placeholder for display purposes
-                        'is_confirmed_nick': is_confirmed_nick
-                    }
-                    all_player_stats.append(placeholder_stats)
+                # Process Qt events after each batch to keep UI responsive
+                QCoreApplication.processEvents()
             
             # Process the final stats
             final_stats = self._process_final_stats(all_player_stats)
             
-            # Emit 100% progress if callback provided
+            # Update progress to 100% when complete
             if progress_callback:
                 progress_callback(100)
                 
             return final_stats
             
         except Exception as e:
-            # Make sure to emit 100% progress on error
+            # Make sure to update progress to 100% on error
             if progress_callback:
                 progress_callback(100)
             print(f"Error fetching player stats: {str(e)}")
@@ -395,18 +407,24 @@ class StatsProcessor:
                 player['rank'] = len(ranked_valid_stats) + idx + 1
                 final_stats.append(player)
             
-            # Calculate nick probabilities for players with real stats
-            for player in final_stats:
-                if not player.get('is_placeholder', False) and not player.get('nick_probability'):
-                    try:
-                        nick_score = nick_detector.estimate_if_nicked(player)
-                        player['nick_probability'] = nick_score
-                        player['nick_estimate'] = nick_detector.get_nick_probability_description(nick_score)
-                    except Exception as e:
-                        # If nick detection fails, use a default
-                        print(f"Error calculating nick probability for {player.get('username')}: {str(e)}")
-                        player['nick_probability'] = 0.0
-                        player['nick_estimate'] = "Unknown"
+            # Calculate nick probabilities for players with real stats - process in batches
+            batch_size = 10
+            for i in range(0, len(final_stats), batch_size):
+                batch = final_stats[i:i + batch_size]
+                for player in batch:
+                    if not player.get('is_placeholder', False) and not player.get('nick_probability'):
+                        try:
+                            nick_score = nick_detector.estimate_if_nicked(player)
+                            player['nick_probability'] = nick_score
+                            player['nick_estimate'] = nick_detector.get_nick_probability_description(nick_score)
+                        except Exception as e:
+                            # If nick detection fails, use a default
+                            print(f"Error calculating nick probability for {player.get('username')}: {str(e)}")
+                            player['nick_probability'] = 0.0
+                            player['nick_estimate'] = "Unknown"
+                
+                # Process Qt events after each batch to keep UI responsive
+                QCoreApplication.processEvents()
             
             return final_stats
         except Exception as e:
@@ -1298,6 +1316,7 @@ class MainWindow(QMainWindow):
         """
         Update the lobby status including player stats.
         Called when the log monitor detects a /who command output.
+        This method runs in the main thread.
         
         Args:
             usernames: List of player usernames
@@ -1335,7 +1354,8 @@ class MainWindow(QMainWindow):
     
     def process_player_stats(self, player_stats):
         """
-        Process the final player stats received from the worker.
+        Process the final player stats and update the UI.
+        This method runs in the main thread.
         
         Args:
             player_stats: List of player stats dictionaries
@@ -1657,7 +1677,7 @@ class MainWindow(QMainWindow):
     
     def show_error(self, message: str) -> None:
         """
-        Show an error message.
+        Show an error message and update the UI accordingly.
         
         Args:
             message: The error message to display.
@@ -1668,18 +1688,41 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         """
         Handle window close event to clean up resources.
+        Ensures all threads and timers are properly stopped before the application exits.
         """
-        # Stop the log monitor
-        self.stop_monitoring()
-        
-        # Stop all timers
-        if hasattr(self, 'log_check_timer'):
-            self.log_check_timer.stop()
-        if hasattr(self, 'refresh_timer'):
-            self.refresh_timer.stop()
-        
-        # Accept the event
-        event.accept()
+        try:
+            # Update status to inform user
+            self.status_bar.showMessage("Shutting down application...")
+            
+            # First stop timers to prevent any new requests to the log monitor
+            if hasattr(self, 'log_check_timer'):
+                try:
+                    self.log_check_timer.stop()
+                except Exception as e:
+                    print(f"Error stopping log check timer: {str(e)}")
+            
+            if hasattr(self, 'refresh_timer'):
+                try:
+                    self.refresh_timer.stop()
+                except Exception as e:
+                    print(f"Error stopping refresh timer: {str(e)}")
+            
+            # Now stop the log monitor which may involve thread joining
+            try:
+                if hasattr(self, 'log_monitor') and self.log_monitor:
+                    self.stop_monitoring()
+            except Exception as e:
+                print(f"Error during log monitor shutdown: {str(e)}")
+            
+            # Clear any references that might hold resources
+            self.current_player_stats = []
+            
+            print("Application shutdown completed successfully")
+        except Exception as e:
+            print(f"Error during application shutdown: {str(e)}")
+        finally:
+            # Always accept the event to ensure the application can close
+            event.accept()
 
     def refresh_log(self) -> None:
         """
@@ -1817,7 +1860,7 @@ class MainWindow(QMainWindow):
 
     def handle_error(self, message: str) -> None:
         """
-        Handle an error message from the worker thread.
+        Handle an error message and update the UI accordingly.
         
         Args:
             message: The error message to display.

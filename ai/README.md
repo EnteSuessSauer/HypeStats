@@ -22,7 +22,9 @@ The Hypixel Stats Companion is a desktop application that helps Minecraft player
 ## Technical Highlights
 
 - Written in **Python** with **PyQt6** for the user interface
-- Uses a **single-threaded event-driven design** with timers for periodic tasks
+- Uses a **single-threaded design with minimal threading** for stability and simplicity
+- Daemon threads for file system monitoring to avoid thread cleanup issues
+- Periodic tasks implemented with Qt timers instead of background threads
 - Leverages the **watchdog** library for file system monitoring
 - Communicates with both the **Mojang API** (UUID lookups) and **Hypixel API** (player stats)
 - Implements custom statistics processing, ranking algorithms, and nick detection heuristics
@@ -51,7 +53,9 @@ The Hypixel Stats Companion is a desktop application that helps Minecraft player
 
 ## Implementation Notes
 
-- The application uses a **single-threaded design** with Qt's event loop and timers
-- Long operations provide progress feedback to maintain UI responsiveness
-- File system monitoring via **watchdog** runs in a separate thread but interacts with the main thread via callbacks
+- The application uses a **predominantly single-threaded design** with Qt's event loop and timers
+- Background operations are processed in batches with QCoreApplication.processEvents() to maintain UI responsiveness
+- File system monitoring via **watchdog** runs in a daemon thread with proper timeout handling
+- Thread locks are used with context managers to ensure proper cleanup
+- The application is designed to gracefully shut down by properly cleaning up resources and terminating threads
 - The UI is designed to be sortable and filterable for easy analysis of player stats 

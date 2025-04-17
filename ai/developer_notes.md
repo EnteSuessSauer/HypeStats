@@ -28,12 +28,12 @@ The application is built using:
 
 The codebase follows a modular structure:
 
-- **API Client**: Handles communication with external APIs
-- **Log Monitor**: Watches and parses Minecraft log files
-- **Stats Processor**: Transforms raw API data into usable statistics
+- **API Client**: Handles communication with external APIs with thread-safe rate limiting
+- **Log Monitor**: Watches and parses Minecraft log files using daemon threads for stability
+- **Stats Processor**: Transforms raw API data into usable statistics with batched processing
 - **Ranking Engine**: Sorts players based on their statistics
 - **Nick Detector**: Attempts to identify players using nicknames
-- **UI Components**: PyQt6-based user interface
+- **UI Components**: PyQt6-based user interface with event-based programming
 
 ## Key Areas for Improvement
 
@@ -55,18 +55,20 @@ This is adequate for basic usage but has several limitations:
 
 ### 2. UI Responsiveness
 
-The application uses a single-threaded design with Qt's event loop for UI responsiveness:
+The application uses a predominantly single-threaded design with Qt's event loop for UI responsiveness:
 
+- Batch processing of data with intermediate UI updates
+- Strategic calls to QCoreApplication.processEvents() to keep UI responsive
 - Progress indication is provided during data fetching
 - UI operations are kept minimal during processing
-- Long-running operations are broken down with intermediate progress updates
 
-While this approach simplifies the code, it has some limitations:
+This approach simplifies the code and avoids thread synchronization issues while still maintaining responsiveness:
 
-- Very large requests may still cause the UI to become temporarily unresponsive
-- Complex operations like fetching many players can take noticeable time
+- Processing is performed in small batches to allow UI updates
+- Long-running operations are broken into chunks with regular event processing
+- Daemon threads are used for file monitoring with proper cleanup
 
-**Recommendation**: Consider implementing more granular progress updates and potentially exploring asynchronous processing with QEventLoop for very large operations.
+**Recommendation**: Continue to optimize the batch processing approach by fine-tuning batch sizes and update frequencies based on different hardware capabilities.
 
 ### 3. Nick Detection Accuracy
 
@@ -135,6 +137,18 @@ To create distributable packages:
 3. **Nick Detection**: False positives in nick detection, especially for newer players
 4. **UI Scaling**: Some UI elements may not scale properly on high DPI displays
 5. **UI Responsiveness**: Large data fetching operations can cause brief UI pauses
+
+## Thread Safety Considerations
+
+When working with this codebase, keep in mind these threading-related guidelines:
+
+1. **Minimal Threading**: The application is designed to minimize thread usage; avoid introducing new threads unless absolutely necessary
+2. **Thread Cleanup**: Always use proper cleanup mechanisms (timeouts, try-finally, context managers) when working with threads
+3. **UI Updates**: Never update the UI directly from a non-main thread; always use signals/slots or callbacks
+4. **Batch Processing**: For long operations, follow the batch processing pattern with QCoreApplication.processEvents() to maintain UI responsiveness
+5. **Lock Usage**: When using locks, always use them with context managers to ensure proper release
+6. **Daemon Threads**: Background threads should be marked as daemon threads to prevent them from blocking application shutdown
+7. **Graceful Shutdown**: Always handle exceptions during application shutdown to ensure resources are properly released
 
 ## Future Feature Ideas
 

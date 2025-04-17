@@ -105,13 +105,14 @@ The nick detector module:
 ## Data Flow
 
 1. The log monitor detects player names from the Minecraft log file through:
-   a. File system events (using watchdog's Observer)
+   a. File system events (using watchdog's Observer daemon thread with proper cleanup)
    b. Periodic checks via QTimer from the main thread
    
 2. The main window receives these names via a callback and:
-   a. Uses the `StatsProcessor` to synchronously fetch and process player stats
+   a. Uses the `StatsProcessor` to synchronously fetch and process player stats in batches
    b. Updates the UI with progress information during processing
-   c. Displays the results in the table
+   c. Processes Qt events between batches to maintain UI responsiveness
+   d. Displays the results in the table
 
 3. The processing flow for each player:
    a. Request UUID for username from the Mojang API
@@ -124,14 +125,16 @@ The nick detector module:
 
 ## Application Design
 
-The application follows a single-threaded design with event-driven updates:
+The application follows a predominantly single-threaded design with event-driven updates:
 
-1. UI responsiveness is maintained through Qt's event loop architecture
-2. Instead of background threads, timers are used to schedule regular tasks
-3. Long operations like API calls are done synchronously but with progress updates to keep the user informed
-4. The `watchdog` library's Observer runs in its own thread but interfaces with the main application through callbacks
+1. UI responsiveness is maintained through Qt's event loop architecture and strategic QCoreApplication.processEvents() calls
+2. Instead of background worker threads, the application processes data in batches with intermediate UI updates
+3. Long operations are broken down into smaller chunks with progress updates to keep the user informed
+4. The `watchdog` library's Observer runs as a daemon thread with proper timeout handling
+5. Thread locks are implemented with context managers to ensure proper cleanup even during exceptions
+6. The application is designed to gracefully shut down by properly cleaning up resources and terminating threads
 
-This design simplifies the application, eliminates thread synchronization issues, and provides a more stable experience for users.
+This design reduces the complexity and potential issues of multithreaded programming, while still providing a responsive user experience.
 
 ## Configuration
 

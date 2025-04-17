@@ -40,6 +40,10 @@ class LogMonitor:
     """
     Monitor the Minecraft log file for Hypixel /who command output.
     Uses a hybrid approach with file system events and periodic checks.
+    
+    The watchdog Observer runs as a daemon thread with proper timeout handling to avoid
+    application hang during shutdown. Thread cleanup is handled automatically with
+    timeouts to prevent threading issues.
     """
     
     def __init__(self, callback: Callable[[List[str]], None], team_callback: Optional[Callable[[str, str], None]] = None) -> None:
@@ -136,19 +140,26 @@ class LogMonitor:
         
         self.running = True
         
-        # Create a watchdog observer to monitor the log file's directory
-        log_dir = os.path.dirname(self.log_file_path)
-        self.observer = Observer()
-        event_handler = LogEventHandler(self._process_new_lines)
-        
-        # Schedule the observer to watch the log file's directory
-        self.observer.schedule(event_handler, log_dir, recursive=False)
-        self.observer.start()
-        
-        # Reset the player list when starting monitoring
-        self.reset_lobby()
-        
-        print(f"Started monitoring log file: {self.log_file_path}")
+        try:
+            # Create a watchdog observer to monitor the log file's directory
+            log_dir = os.path.dirname(self.log_file_path)
+            self.observer = Observer()
+            # Make the observer thread a daemon thread so it doesn't block application exit
+            self.observer.daemon = True
+            event_handler = LogEventHandler(self._process_new_lines)
+            
+            # Schedule the observer to watch the log file's directory
+            self.observer.schedule(event_handler, log_dir, recursive=False)
+            self.observer.start()
+            
+            # Reset the player list when starting monitoring
+            self.reset_lobby()
+            
+            print(f"Started monitoring log file: {self.log_file_path}")
+        except Exception as e:
+            self.running = False
+            print(f"Error starting log monitor: {str(e)}")
+            raise
     
     def check_log_file(self) -> None:
         """
@@ -173,9 +184,16 @@ class LogMonitor:
         
         # Stop the observer
         if self.observer:
-            self.observer.stop()
-            self.observer.join()
-            self.observer = None
+            try:
+                self.observer.stop()
+                # Add a timeout to join to prevent hanging
+                self.observer.join(timeout=2.0)
+                if self.observer.is_alive():
+                    print("Warning: Observer thread didn't terminate in time")
+            except Exception as e:
+                print(f"Error stopping observer: {str(e)}")
+            finally:
+                self.observer = None
         
         print("Stopped monitoring log file")
     

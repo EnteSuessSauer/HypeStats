@@ -17,6 +17,9 @@ class RateLimiter:
     The Hypixel API has a rate limit of 300 requests per 5 minutes per API key.
     This class ensures we don't exceed that limit by tracking when requests were made
     and waiting if necessary.
+    
+    Thread safety is ensured through proper use of locks with context managers,
+    and by minimizing lock hold times to prevent blocking other threads unnecessarily.
     """
     
     def __init__(self, max_requests, time_window):
@@ -35,9 +38,12 @@ class RateLimiter:
     def wait_if_needed(self):
         """
         Wait if the rate limit would be exceeded by making a request now.
+        Uses a context manager for the lock to ensure proper release even when exceptions occur.
         """
         current_time = time.time()
+        wait_time = 0
         
+        # Use a context manager to ensure the lock is always released
         with self._lock:
             # Remove timestamps outside the window
             while self.request_timestamps and self.request_timestamps[0] < current_time - self.time_window:
@@ -47,13 +53,12 @@ class RateLimiter:
                 # Calculate how long to wait for the oldest request to expire
                 wait_time = self.request_timestamps[0] + self.time_window - current_time
                 wait_time = max(wait_time, 0)  # Ensure non-negative
-            else:
-                wait_time = 0
         
+        # Sleep outside the lock to not block other threads unnecessarily
         if wait_time > 0:
             time.sleep(wait_time)
         
-        # Record this request
+        # Record this request - separate lock acquisition to minimize lock hold time
         with self._lock:
             self.request_timestamps.append(time.time())
 
